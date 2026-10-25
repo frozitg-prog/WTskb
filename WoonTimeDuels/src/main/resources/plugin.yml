@@ -1,0 +1,15 @@
+name: WoonTimeDuels
+version: 1.0.0
+main: su.woontime.duels.WoonTimeDuels
+api-version: '1.21'
+softdepend: [PlaceholderAPI]
+commands:
+  duel:
+    description: Поиск соперника и вызов на дуэль
+    usage: /duel [ник|accept|deny|cancel|stats]
+  dueladmin:
+    description: Администрирование дуэлей
+    usage: /dueladmin <arena|kit|rating|emeralds>
+permissions:
+  woontime.duels.admin:
+    default: op
