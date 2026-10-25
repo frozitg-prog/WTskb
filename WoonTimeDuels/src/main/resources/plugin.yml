@@ -10,6 +10,12 @@ commands:
   dueladmin:
     description: Администрирование дуэлей
     usage: /dueladmin <arena|kit|rating|emeralds>
+  menu:
+    description: Главное меню сервера
+    usage: /menu
+  stats:
+    description: Статистика игрока
+    usage: /stats
 permissions:
   woontime.duels.admin:
     default: op
