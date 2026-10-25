@@ -77,7 +77,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
     }
 
     private void updateTab(Player player) {
-        Component header = MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTIme</bold></gradient>\n<light_purple><bold>duels</bold></light_purple>");
+        Component header = MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTIme</bold></gradient>\n\n<light_purple><bold>duels</bold></light_purple>");
 
         int searching = 0;
         int fighting = 0;
@@ -100,7 +100,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         String footerText = "<gray>Онлайн: <white>" + Bukkit.getOnlinePlayers().size()
                 + "</white> <dark_gray>·</dark_gray> <gray>В поиске: <white>" + searching
                 + "</white> <dark_gray>·</dark_gray> <gray>В бою: <white>" + fighting
-                + "</white>\n" + announcements[announcementIndex];
+                + "</white>\n\n" + announcements[announcementIndex];
         Component footer = MINI_MESSAGE.deserialize(footerText);
         player.sendPlayerListHeaderAndFooter(header, footer);
     }
