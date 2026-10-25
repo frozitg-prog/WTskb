@@ -1,0 +1,7 @@
+name: MyScoreboard
+version: '1.0.0'
+main: me.example.myscoreboard.MyScoreboard
+api-version: '1.21'
+author: ServerOwner
+description: Custom sidebar scoreboard for Paper 1.21.4
+softdepend: [Vault]
