@@ -350,7 +350,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         p.setFireTicks(0);p.setHealth(Math.min(p.getMaxHealth(),20));p.setFoodLevel(20);p.setSaturation(20);
     }
     @EventHandler public void onDeath(PlayerDeathEvent e) {
-        Player p=e.getEntity(); UUID opp=opponents.get(p.getUniqueId()); if(opp==null)return;
+        Player p=e.getEntity(); UUID opp=opponents.get(p.getUniqueId()); if(opp==null){Bukkit.getScheduler().runTask(this,()->{if(p.isOnline()&&p.isDead())p.spigot().respawn();});return;}
         e.getDrops().clear(); e.setDroppedExp(0);
         Player winner=Bukkit.getPlayer(opp);
         if(winner!=null) endMatch(winner,true,"Дуэль завершена.");
@@ -380,7 +380,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(a.length>=3 && a[0].equalsIgnoreCase("rating")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}ratings.put(p.getUniqueId(),Math.max(0,parseInt(a[2],1000)));msg(s,"Рейтинг установлен: "+ratings.get(p.getUniqueId()));saveData();return true;}
         if(a.length>=3 && a[0].equalsIgnoreCase("emeralds")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}emeralds.put(p.getUniqueId(),Math.max(0,parseInt(a[2],0)));msg(s,"Баланс изумрудов установлен.");saveData();return true;}
         if(a.length>=4 && a[0].equalsIgnoreCase("arena") && a[1].equalsIgnoreCase("setspawn") && s instanceof Player p){String path="arenas."+a[2]+".spawn"+a[3];Location l=p.getLocation();getConfig().set(path+".world",l.getWorld().getName());getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());getConfig().set(path+".yaw",l.getYaw());getConfig().set(path+".pitch",l.getPitch());saveConfig();msg(s,"Спавн "+a[3]+" арены "+a[2]+" сохранён.");return true;}
-        if(a.length>=3 && a[0].equalsIgnoreCase("kit") && a[1].equalsIgnoreCase("create") && s instanceof Player p){String kit=a[2];List<ItemStack> items=new ArrayList<>();for(ItemStack it:p.getInventory().getContents())if(it!=null&&!it.getType().isAir())items.add(it.clone());getConfig().set("kits."+kit+".items",items);saveConfig();msg(s,"Набор "+kit+" сохранён из твоего инвентаря.");refreshMenus();return true;}
+        if(a.length>=3 && a[0].equalsIgnoreCase("kit") && a[1].equalsIgnoreCase("create") && s instanceof Player p){String kit=a[2];List<ItemStack> items=new ArrayList<>();for(ItemStack it:p.getInventory().getContents())if(it!=null&&!it.getType().isAir())items.add(it.clone());for(ItemStack it:p.getInventory().getArmorContents())if(it!=null&&!it.getType().isAir())items.add(it.clone());getConfig().set("kits."+kit+".items",items);saveConfig();msg(s,"Набор "+kit+" сохранён из твоего инвентаря.");refreshMenus();return true;}
         if(a.length>=3 && a[0].equalsIgnoreCase("kit") && a[1].equalsIgnoreCase("delete")){
             ConfigurationSection section=getConfig().getConfigurationSection("kits");
             String requested=a[2];
