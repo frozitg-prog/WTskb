@@ -206,7 +206,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         UUID match=null;
         for(UUID id: new ArrayList<>(queue)) {
             Player other=Bukkit.getPlayer(id);
-            if(other!=null && !id.equals(p.getUniqueId())) { match=id; break; }
+            if(other!=null && !id.equals(p.getUniqueId()) && queueKits.getOrDefault(id, "").equalsIgnoreCase(kit)) { match=id; break; }
         }
         if(match==null) {
             queue.add(p.getUniqueId()); queueKits.put(p.getUniqueId(),kit); queueStarted.put(p.getUniqueId(),System.currentTimeMillis());
