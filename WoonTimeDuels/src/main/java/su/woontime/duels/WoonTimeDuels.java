@@ -269,6 +269,20 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             }}.runTaskTimer(this,0L,20L);
     }
     private void giveKit(Player p,String kit) {
+        List<String> layout=personalKits.getStringList(p.getUniqueId()+"."+kit+".layout");
+        if(!layout.isEmpty()) {
+            ItemStack[] armor=new ItemStack[4];
+            for(String raw:layout) {
+                String[] parts=raw.split(":",3);if(parts.length<3)continue;
+                int slot=parseInt(parts[0],-1);Material m=Material.matchMaterial(parts[1]);if(m==null)continue;
+                ItemStack item=new ItemStack(m,Math.max(1,Math.min(m.getMaxStackSize(),parseInt(parts[2],1))));
+                if(slot>=0&&slot<36)p.getInventory().setItem(slot,item);
+                else if(slot>=45&&slot<=48)armor[slot-45]=item;
+                else if(slot==49)p.getInventory().setItemInOffHand(item);
+            }
+            p.getInventory().setArmorContents(armor);
+            return;
+        }
         List<String> items=getConfig().getStringList("kits."+kit+".items");
         for(String raw:items){String[] parts=raw.split(":"); Material m=Material.matchMaterial(parts[0]); if(m==null)continue;
             int amount=parts.length>1?parseInt(parts[1],1):1; p.getInventory().addItem(new ItemStack(m,Math.max(1,Math.min(m.getMaxStackSize(),amount))));}
