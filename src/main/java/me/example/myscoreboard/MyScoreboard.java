@@ -1,8 +1,8 @@
 package me.example.myscoreboard;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.milkbowl.vault.economy.Economy;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -12,40 +12,35 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.NumberFormat;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 public final class MyScoreboard extends JavaPlugin implements Listener {
     private static final LegacyComponentSerializer LEGACY =
             LegacyComponentSerializer.legacyAmpersand();
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     private static final String[] ENTRIES = {
             ChatColor.BLACK.toString(),
             ChatColor.DARK_BLUE.toString(),
             ChatColor.DARK_GREEN.toString(),
-            ChatColor.DARK_AQUA.toString(),
-            ChatColor.DARK_RED.toString(),
-            ChatColor.DARK_PURPLE.toString(),
-            ChatColor.GOLD.toString()
+            ChatColor.DARK_AQUA.toString()
     };
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
-    private Economy economy;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        setupEconomy();
         getServer().getPluginManager().registerEvents(this, this);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -68,25 +63,6 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         getLogger().info("MyScoreboard enabled!");
     }
 
-    private void setupEconomy() {
-        if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
-            getLogger().warning("Vault not found; balance will show unavailable.");
-            return;
-        }
-
-        RegisteredServiceProvider<Economy> provider =
-                getServer().getServicesManager().getRegistration(Economy.class);
-
-        if (provider != null) {
-            economy = provider.getProvider();
-        }
-
-        if (economy == null) {
-            getLogger().warning(
-                    "No Vault economy provider found; install a compatible economy plugin.");
-        }
-    }
-
     private Component text(String value) {
         return LEGACY.deserialize(value == null ? "" : value);
     }
@@ -94,17 +70,19 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
     private void createBoard(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
 
+        Component title = MINI_MESSAGE.deserialize(
+                "<gradient:#ff69b4:#ff1493><bold>WoonTime</bold></gradient>");
+
         Objective objective = board.registerNewObjective(
                 "mysidebar",
                 Criteria.DUMMY,
-                text(getConfig().getString("server-name", "&b&lMY SERVER"))
+                title
         );
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        // Hide the score numbers displayed on the right side of the sidebar.
+        objective.numberFormat(NumberFormat.blank());
 
-        String[] teamNames = {
-                "player", "online", "balance", "kills", "deaths", "ping", "address"
-        };
-
+        String[] teamNames = {"player", "kd", "ping", "address"};
         for (int i = 0; i < teamNames.length; i++) {
             Team team = board.registerNewTeam(teamNames[i]);
             team.addEntry(ENTRIES[i]);
@@ -131,30 +109,16 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             board = boards.get(player.getUniqueId());
         }
 
-        setLine(board, "player", "&7Ник: ", "&f" + player.getName());
+        setLine(board, "player", "&7Ник: &f", player.getName());
 
-        setLine(board, "online", "&7Онлайн: ",
-                "&b" + Bukkit.getOnlinePlayers().size()
-                        + "&7/&f" + Bukkit.getMaxPlayers());
+        int kills = player.getStatistic(Statistic.PLAYER_KILLS);
+        int deaths = player.getStatistic(Statistic.DEATHS);
+        setLine(board, "kd", "&7КД: &d" + kills + " &7| &c" + deaths, "");
 
-        String balance = economy == null
-                ? "недоступен"
-                : String.format(Locale.US, "%.2f", economy.getBalance(player));
+        setLine(board, "ping", "&7Пинг: &b", player.getPing() + " ms");
 
-        setLine(board, "balance", "&7Баланс: ",
-                economy == null ? "&c" + balance : "&a$" + balance);
-
-        setLine(board, "kills", "&7Убийства: ",
-                "&f" + player.getStatistic(Statistic.PLAYER_KILLS));
-
-        setLine(board, "deaths", "&7Смерти: ",
-                "&f" + player.getStatistic(Statistic.DEATHS));
-
-        setLine(board, "ping", "&7Пинг: ",
-                "&b" + player.getPing() + " ms");
-
-        setLine(board, "address", "",
-                getConfig().getString("server-address", "&7play.myserver.net"));
+        setLine(board, "address", "", getConfig().getString(
+                "server-address", "&7woontime.su"));
     }
 
     @EventHandler
