@@ -357,8 +357,20 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(a.length>=3 && a[0].equalsIgnoreCase("rating")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}ratings.put(p.getUniqueId(),Math.max(0,parseInt(a[2],1000)));msg(s,"Рейтинг установлен: "+ratings.get(p.getUniqueId()));saveData();return true;}
         if(a.length>=3 && a[0].equalsIgnoreCase("emeralds")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}emeralds.put(p.getUniqueId(),Math.max(0,parseInt(a[2],0)));msg(s,"Баланс изумрудов установлен.");saveData();return true;}
         if(a.length>=4 && a[0].equalsIgnoreCase("arena") && a[1].equalsIgnoreCase("setspawn") && s instanceof Player p){String path="arenas."+a[2]+".spawn"+a[3];Location l=p.getLocation();getConfig().set(path+".world",l.getWorld().getName());getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());getConfig().set(path+".yaw",l.getYaw());getConfig().set(path+".pitch",l.getPitch());saveConfig();msg(s,"Спавн "+a[3]+" арены "+a[2]+" сохранён.");return true;}
-        if(a.length>=3 && a[0].equalsIgnoreCase("kit") && a[1].equalsIgnoreCase("create") && s instanceof Player p){String kit=a[2];List<String> items=new ArrayList<>();for(ItemStack it:p.getInventory().getContents())if(it!=null)items.add(it.getType().name()+":"+it.getAmount());getConfig().set("kits."+kit+".items",items);saveConfig();msg(s,"Набор "+kit+" сохранён из твоего инвентаря.");return true;}
-        msg(s,"Использование: /dueladmin arena setspawn <арена> <1|2> | kit create <имя> | rating <ник> <число> | emeralds <ник> <число>");return true;
+        if(a.length>=3 && a[0].equalsIgnoreCase("kit") && a[1].equalsIgnoreCase("create") && s instanceof Player p){String kit=a[2];List<String> items=new ArrayList<>();for(ItemStack it:p.getInventory().getContents())if(it!=null)items.add(it.getType().name()+":"+it.getAmount());getConfig().set("kits."+kit+".items",items);saveConfig();msg(s,"Набор "+kit+" сохранён из твоего инвентаря.");refreshMenus();return true;}
+        if(a.length>=3 && a[0].equalsIgnoreCase("kit") && a[1].equalsIgnoreCase("delete")){
+            ConfigurationSection section=getConfig().getConfigurationSection("kits");
+            String requested=a[2];
+            String actual=null;
+            if(section!=null)for(String key:section.getKeys(false))if(key.equalsIgnoreCase(requested)){actual=key;break;}
+            if(actual==null){msg(s,"Кит '"+requested+"' не найден. Проверь название в config.yml.");return true;}
+            if(section.getKeys(false).size()<=1){msg(s,"Нельзя удалить последний кит. Сначала создай другой: /dueladmin kit create <имя>");return true;}
+            getConfig().set("kits."+actual,null);saveConfig();
+            for(String playerKey:new HashSet<>(personalKits.getKeys(false)))personalKits.set(playerKey+"."+actual,null);
+            try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kits: "+ex.getMessage());}
+            refreshMenus();msg(s,"Кит '"+actual+"' удалён.");return true;
+        }
+        msg(s,"Использование: /dueladmin arena setspawn <арена> <1|2> | kit create <имя> | kit delete <имя> | rating <ник> <число> | emeralds <ник> <число>");return true;
     }
     public int getRating(UUID id){return rating(id);}
     public int getEmeralds(UUID id){return emeralds(id);}
