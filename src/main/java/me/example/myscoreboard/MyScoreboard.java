@@ -178,9 +178,9 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             if (diamonds == null || diamonds.contains("%")) diamonds = "0";
         }
         setLine(board, "diamonds", "&7Алмазы: &b", diamonds);
-        setLine(board, "mc", "&7mc", "");
+        setLine(board, "mc", "&7Ping: &d" + Math.max(0, player.getPing()) + " ms", "");
         setLine(board, "separator", "&8----------------", "");
-        setLine(board, "donate", "&dКупить донат", " &f/don");
+        setLine(board, "donate", "&dДонат /don", "");
 
         Team addressTeam = board.getTeam("address");
         if (addressTeam != null) {
