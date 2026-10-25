@@ -45,10 +45,15 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(this, this);
+        getCommand("don").setExecutor((sender, command, label, args) -> {
+            sender.sendMessage(MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTime</bold></gradient> <gray>» <white>Купить донат можно у <light_purple>@WoonTimebot<white>."));
+            return true;
+        });
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             createBoard(player);
             updateBoard(player);
+            updateTab(player);
         }
 
         long interval = Math.max(1L,
@@ -60,6 +65,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
                     createBoard(player);
                 }
                 updateBoard(player);
+                updateTab(player);
             }
         }, 1L, interval);
 
@@ -68,6 +74,12 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
 
     private Component text(String value) {
         return LEGACY.deserialize(value == null ? "" : value);
+    }
+
+    private void updateTab(Player player) {
+        Component header = MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTime.Su</bold></gradient>\\n<gray>Добро пожаловать на <light_purple>WoonTime</light_purple>!");
+        Component footer = MINI_MESSAGE.deserialize("<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━━</dark_gray>\\n<light_purple>Игроков онлайн: <white>" + Bukkit.getOnlinePlayers().size() + "</white>\\n<gray>Купить донат: <light_purple>/don</light_purple>");
+        player.sendPlayerListHeaderAndFooter(header, footer);
     }
 
     private void createBoard(Player player) {
@@ -161,6 +173,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             if (!player.isOnline()) return;
             createBoard(player);
             updateBoard(player);
+            updateTab(player);
         });
     }
 
