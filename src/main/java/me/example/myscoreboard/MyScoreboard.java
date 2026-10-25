@@ -180,7 +180,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         setLine(board, "diamonds", "&7Алмазы: &b", diamonds);
         setLine(board, "mc", "&7mc", "");
         setLine(board, "separator", "&8----------------", "");
-        setLine(board, "donate", "&dКупить донат", " &7@WoonTimebot");
+        setLine(board, "donate", "&dКупить донат", " &f/don");
 
         Team addressTeam = board.getTeam("address");
         if (addressTeam != null) {
