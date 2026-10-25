@@ -33,7 +33,9 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             ChatColor.DARK_BLUE.toString(),
             ChatColor.DARK_GREEN.toString(),
             ChatColor.DARK_AQUA.toString(),
-            ChatColor.DARK_PURPLE.toString()
+            ChatColor.DARK_PURPLE.toString(),
+            ChatColor.GOLD.toString(),
+            ChatColor.GRAY.toString()
     };
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
@@ -71,7 +73,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
 
         Component title = MINI_MESSAGE.deserialize(
-                "<gradient:#ff69b4:#ff1493><bold>WoonDuels</bold></gradient>");
+                "<gradient:#ff69b4:#ff1493><bold>WoonTime.su</bold></gradient>");
 
         Objective objective = board.registerNewObjective(
                 "mysidebar",
@@ -82,7 +84,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         // Hide score numbers on Paper versions that expose the number-format API.
         hideScoreNumbers(objective);
 
-        String[] teamNames = {"player", "kd", "ping", "rating", "address"};
+        String[] teamNames = {"diamonds", "rating", "kd", "mc", "separator", "donate", "address"};
         for (int i = 0; i < teamNames.length; i++) {
             Team team = board.registerNewTeam(teamNames[i]);
             team.addEntry(ENTRIES[i]);
@@ -124,19 +126,25 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             board = boards.get(player.getUniqueId());
         }
 
-        setLine(board, "player", "", player.getName());
-
         int kills = player.getStatistic(Statistic.PLAYER_KILLS);
         int deaths = player.getStatistic(Statistic.DEATHS);
         setLine(board, "kd", "&7КД: &d" + kills + " &7| &c" + deaths, "");
-
-        setLine(board, "ping", "&b", player.getPing() + " ms");
 
         String rating = "—";
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             rating = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, "%woontime_rating%");
         }
         setLine(board, "rating", "&7Рейтинг: &d", rating);
+
+        String diamonds = "0";
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            diamonds = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, "%woontime_emeralds%");
+            if (diamonds == null || diamonds.contains("%")) diamonds = "0";
+        }
+        setLine(board, "diamonds", "&7Алмазы: &b", diamonds);
+        setLine(board, "mc", "&7mc", "");
+        setLine(board, "separator", "&8----------------", "");
+        setLine(board, "donate", "&dКупить донат", "");
 
         Team addressTeam = board.getTeam("address");
         if (addressTeam != null) {
