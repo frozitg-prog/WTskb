@@ -1,0 +1,16 @@
+settings:
+  starting-rating: 1000
+  min-rating-change: 50
+  max-rating-change: 100
+  countdown-seconds: 5
+  arena-world: world
+  queue-kit: default
+kits:
+  default:
+    items:
+      - IRON_SWORD
+      - BOW
+      - ARROW:16
+      - GOLDEN_APPLE:2
+      - COOKED_BEEF:16
+arenas: {}
