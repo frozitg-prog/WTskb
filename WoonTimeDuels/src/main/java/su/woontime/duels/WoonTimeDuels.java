@@ -28,6 +28,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private final Map<UUID,ItemStack[]> savedArmor = new HashMap<>();
     private final Map<UUID,Long> matchStart = new HashMap<>();
     private final Map<UUID,String> matchKit = new HashMap<>();
+    private final Map<UUID,String> playerArena = new HashMap<>();
+    private final Set<String> busyArenas = new HashSet<>();
     private File dataFile;
     private YamlConfiguration data;
 
@@ -104,11 +106,29 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         String otherKit=other!=null && other.hasMetadata("wt-duel-kit") ? other.getMetadata("wt-duel-kit").get(0).asString() : kit;
         if(other!=null) startMatch(p,other,kit.equals(otherKit)?kit:otherKit);
     }
+    private String findFreeArena() {
+        ConfigurationSection arenas = getConfig().getConfigurationSection("arenas");
+        if (arenas == null) return null;
+        for (String name : arenas.getKeys(false)) {
+            if (busyArenas.contains(name)) continue;
+            Location one = loc("arenas." + name + ".spawn1");
+            Location two = loc("arenas." + name + ".spawn2");
+            if (one != null && two != null && one.getWorld().equals(two.getWorld())) return name;
+        }
+        return null;
+    }
     private void startMatch(Player a, Player b, String kit) {
-        Location one=loc("arenas.default.spawn1"), two=loc("arenas.default.spawn2");
-        if(one==null || two==null) { msg(a,"Арена не настроена. Администратор: /dueladmin arena setspawn default 1"); msg(b,"Арена не настроена."); return; }
+        String arena = findFreeArena();
+        if (arena == null) {
+            msg(a, "Сейчас все арены заняты или не настроены. Попробуйте позже.");
+            msg(b, "Сейчас все арены заняты или не настроены. Попробуйте позже.");
+            return;
+        }
+        Location one=loc("arenas."+arena+".spawn1"), two=loc("arenas."+arena+".spawn2");
+        if(one==null || two==null) { msg(a,"Арена "+arena+" не настроена: нужны оба спавна."); msg(b,"Арена "+arena+" не настроена."); return; }
         if(!one.getWorld().equals(two.getWorld())) { msg(a,"Спавны арены должны быть в одном мире."); return; }
         UUID x=a.getUniqueId(), y=b.getUniqueId();
+        busyArenas.add(arena); playerArena.put(x,arena); playerArena.put(y,arena);
         opponents.put(x,y); opponents.put(y,x); matchStart.put(x,System.currentTimeMillis()); matchStart.put(y,System.currentTimeMillis()); matchKit.put(x,kit); matchKit.put(y,kit);
         returns.put(x,a.getLocation()); returns.put(y,b.getLocation());
         savedItems.put(x,a.getInventory().getContents()); savedItems.put(y,b.getInventory().getContents());
@@ -140,6 +160,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(loser!=null) restore(loser);
         restore(winner);
         msg(winner,reason); if(loser!=null)msg(loser,reason);
+        String arena=playerArena.remove(id); playerArena.remove(otherId); if(arena!=null)busyArenas.remove(arena);
         matchStart.remove(id);matchStart.remove(otherId);matchKit.remove(id);matchKit.remove(otherId);saveData();
     }
     private void restore(Player p) {
