@@ -15,7 +15,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.NumberFormat;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
@@ -79,8 +78,8 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
                 title
         );
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        // Hide the score numbers displayed on the right side of the sidebar.
-        objective.numberFormat(NumberFormat.blank());
+        // Hide score numbers on Paper versions that expose the number-format API.
+        hideScoreNumbers(objective);
 
         String[] teamNames = {"player", "kd", "ping", "address"};
         for (int i = 0; i < teamNames.length; i++) {
@@ -91,6 +90,21 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
 
         boards.put(player.getUniqueId(), board);
         player.setScoreboard(board);
+    }
+
+    private void hideScoreNumbers(Objective objective) {
+        try {
+            Class<?> formatClass;
+            try {
+                formatClass = Class.forName("io.papermc.paper.scoreboard.numbers.NumberFormat");
+            } catch (ClassNotFoundException ignored) {
+                formatClass = Class.forName("org.bukkit.scoreboard.NumberFormat");
+            }
+            Object blankFormat = formatClass.getMethod("blank").invoke(null);
+            objective.getClass().getMethod("numberFormat", formatClass).invoke(objective, blankFormat);
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Could not hide scoreboard numbers on this server version: " + exception.getMessage());
+        }
     }
 
     private void setLine(Scoreboard board, String teamName,
