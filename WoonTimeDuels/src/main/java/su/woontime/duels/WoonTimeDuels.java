@@ -214,7 +214,6 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             new BukkitRunnable(){ public void run(){ if(!queue.contains(p.getUniqueId())||!p.isOnline()){cancel();return;}
                 long secs=(System.currentTimeMillis()-queueStarted.getOrDefault(p.getUniqueId(),System.currentTimeMillis()))/1000;
                 bar.setTitle(ChatColor.LIGHT_PURPLE+"В ожидании • "+(secs/60)+":"+String.format("%02d",secs%60));
-                refreshMenus();
             }}.runTaskTimer(this,0L,20L);
             msg(p,"Ищем соперника для набора "+kit+"... ПКМ по киту в меню — выйти из очереди."); refreshMenus(); return;
         }
