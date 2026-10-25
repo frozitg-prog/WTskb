@@ -374,6 +374,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     }
     public int getRating(UUID id){return rating(id);}
     public int getEmeralds(UUID id){return emeralds(id);}
+    public int getSearchingCount(){return queue.size();}
+    public int getFightingCount(){return new HashSet<>(opponents.keySet()).size()/2;}
     private static final class netPlaceholderExpansion extends me.clip.placeholderapi.expansion.PlaceholderExpansion {
         private final WoonTimeDuels plugin;
         netPlaceholderExpansion(WoonTimeDuels plugin){this.plugin=plugin;}
@@ -383,6 +385,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             if(player==null)return "";
             if(params.equalsIgnoreCase("rating"))return String.valueOf(plugin.getRating(player.getUniqueId()));
             if(params.equalsIgnoreCase("emeralds"))return String.valueOf(plugin.getEmeralds(player.getUniqueId()));
+            if(params.equalsIgnoreCase("searching"))return String.valueOf(plugin.getSearchingCount());
+            if(params.equalsIgnoreCase("fighting"))return String.valueOf(plugin.getFightingCount());
             return null;
         }
     }
