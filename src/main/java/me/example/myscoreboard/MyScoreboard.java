@@ -102,7 +102,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
                 formatClass = Class.forName("org.bukkit.scoreboard.NumberFormat");
             }
             Object blankFormat = formatClass.getMethod("blank").invoke(null);
-            objective.getClass().getMethod("numberFormat", formatClass).invoke(objective, blankFormat);
+            Objective.class.getMethod("numberFormat", formatClass).invoke(objective, blankFormat);
         } catch (ReflectiveOperationException exception) {
             getLogger().warning("Could not hide scoreboard numbers on this server version: " + exception.getMessage());
         }
