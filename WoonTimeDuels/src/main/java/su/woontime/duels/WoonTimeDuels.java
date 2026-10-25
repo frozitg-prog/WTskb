@@ -294,9 +294,23 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         Player loser=Bukkit.getPlayer(otherId);
         opponents.remove(id); opponents.remove(otherId);
         int elapsed=(int)((System.currentTimeMillis()-matchStart.getOrDefault(id,System.currentTimeMillis()))/1000);
-        int max=getConfig().getInt("settings.max-rating-change",100), min=getConfig().getInt("settings.min-rating-change",50);
-        int delta=Math.max(min,Math.min(max,min+(elapsed/30)*5));
-        if(won){ratings.put(id,Math.max(0,rating(id)+delta)); emeralds.put(id,emeralds(id)+1); if(loser!=null)ratings.put(otherId,Math.max(0,rating(otherId)-delta)); msg(winner,"Победа! Рейтинг +"+delta+" и +1 алмаз."); if(loser!=null)msg(loser,"Поражение. Рейтинг -"+delta+"."); saveData();}
+        int delta=50;
+        if(won){
+            ratings.put(id,Math.max(0,rating(id)+delta));
+            emeralds.put(id,emeralds(id)+1);
+            if(loser!=null)ratings.put(otherId,Math.max(0,rating(otherId)-delta));
+            String loserName=loser!=null?loser.getName():Bukkit.getOfflinePlayer(otherId).getName();
+            if(loserName==null)loserName=otherId.toString().substring(0,8);
+            String pinkLine=ChatColor.LIGHT_PURPLE+"=====================================";
+            Bukkit.broadcastMessage(pinkLine);
+            Bukkit.broadcastMessage(ChatColor.WHITE+"Победу одержал "+ChatColor.LIGHT_PURPLE+winner.getName());
+            Bukkit.broadcastMessage(ChatColor.WHITE+"Игроку (Win) "+ChatColor.LIGHT_PURPLE+winner.getName()+ChatColor.WHITE+" начислено "+ChatColor.GREEN+"+50"+ChatColor.WHITE+" очков рейтинга");
+            Bukkit.broadcastMessage(ChatColor.WHITE+"Игроку (Loss) "+ChatColor.LIGHT_PURPLE+loserName+ChatColor.WHITE+" забрано "+ChatColor.RED+"-50"+ChatColor.WHITE+" очков рейтинга");
+            Bukkit.broadcastMessage(pinkLine);
+            msg(winner,"Победа! +50 рейтинга и +1 алмаз.");
+            if(loser!=null)msg(loser,"Поражение. -50 рейтинга.");
+            saveData();
+        }
         if(loser!=null) restore(loser);
         restore(winner);
         msg(winner,reason); if(loser!=null)msg(loser,reason);
