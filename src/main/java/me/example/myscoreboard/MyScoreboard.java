@@ -77,7 +77,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
     }
 
     private void updateTab(Player player) {
-        Component header = MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTime</bold></gradient>\n\n<light_purple><bold>duels</bold></light_purple>");
+        Component header = MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTime</bold></gradient>\n<light_purple><bold>duels</bold></light_purple>");
 
         int searching = 0;
         int fighting = 0;
