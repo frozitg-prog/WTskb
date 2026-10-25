@@ -71,7 +71,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
 
         Component title = MINI_MESSAGE.deserialize(
-                "<gradient:#ff69b4:#ff1493><bold>WoonTime</bold></gradient>");
+                "<gradient:#ff69b4:#ff1493><bold>WoonDuels</bold></gradient>");
 
         Objective objective = board.registerNewObjective(
                 "mysidebar",
