@@ -32,7 +32,8 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             ChatColor.BLACK.toString(),
             ChatColor.DARK_BLUE.toString(),
             ChatColor.DARK_GREEN.toString(),
-            ChatColor.DARK_AQUA.toString()
+            ChatColor.DARK_AQUA.toString(),
+            ChatColor.DARK_PURPLE.toString()
     };
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
@@ -81,7 +82,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         // Hide score numbers on Paper versions that expose the number-format API.
         hideScoreNumbers(objective);
 
-        String[] teamNames = {"player", "kd", "ping", "address"};
+        String[] teamNames = {"player", "kd", "ping", "address", "rating"};
         for (int i = 0; i < teamNames.length; i++) {
             Team team = board.registerNewTeam(teamNames[i]);
             team.addEntry(ENTRIES[i]);
@@ -130,6 +131,12 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         setLine(board, "kd", "&7КД: &d" + kills + " &7| &c" + deaths, "");
 
         setLine(board, "ping", "&7Пинг: &b", player.getPing() + " ms");
+
+        String rating = "—";
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            rating = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, "%woontime_rating%");
+        }
+        setLine(board, "rating", "&7Рейтинг: &d", rating);
 
         setLine(board, "address", "", getConfig().getString(
                 "server-address", "&7woontime.su"));
