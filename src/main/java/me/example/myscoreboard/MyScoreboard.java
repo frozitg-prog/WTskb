@@ -82,7 +82,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         // Hide score numbers on Paper versions that expose the number-format API.
         hideScoreNumbers(objective);
 
-        String[] teamNames = {"player", "kd", "ping", "address", "rating"};
+        String[] teamNames = {"player", "kd", "ping", "rating", "address"};
         for (int i = 0; i < teamNames.length; i++) {
             Team team = board.registerNewTeam(teamNames[i]);
             team.addEntry(ENTRIES[i]);
@@ -124,13 +124,13 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             board = boards.get(player.getUniqueId());
         }
 
-        setLine(board, "player", "&7Ник: &f", player.getName());
+        setLine(board, "player", "", player.getName());
 
         int kills = player.getStatistic(Statistic.PLAYER_KILLS);
         int deaths = player.getStatistic(Statistic.DEATHS);
         setLine(board, "kd", "&7КД: &d" + kills + " &7| &c" + deaths, "");
 
-        setLine(board, "ping", "&7Пинг: &b", player.getPing() + " ms");
+        setLine(board, "ping", "&b", player.getPing() + " ms");
 
         String rating = "—";
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -138,8 +138,11 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         }
         setLine(board, "rating", "&7Рейтинг: &d", rating);
 
-        setLine(board, "address", "", getConfig().getString(
-                "server-address", "&7woontime.su"));
+        Team addressTeam = board.getTeam("address");
+        if (addressTeam != null) {
+            addressTeam.prefix(MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTime.su</bold></gradient>"));
+            addressTeam.suffix(Component.empty());
+        }
     }
 
     @EventHandler
