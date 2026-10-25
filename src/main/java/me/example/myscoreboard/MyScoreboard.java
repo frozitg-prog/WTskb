@@ -35,7 +35,8 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
             ChatColor.DARK_AQUA.toString(),
             ChatColor.DARK_PURPLE.toString(),
             ChatColor.GOLD.toString(),
-            ChatColor.GRAY.toString()
+            ChatColor.GRAY.toString(),
+            ChatColor.WHITE.toString()
     };
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
@@ -144,7 +145,7 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
         setLine(board, "diamonds", "&7Алмазы: &b", diamonds);
         setLine(board, "mc", "&7mc", "");
         setLine(board, "separator", "&8----------------", "");
-        setLine(board, "donate", "&dКупить донат", "");
+        setLine(board, "donate", "&dКупить донат", " &7@WoonTimebot");
 
         Team addressTeam = board.getTeam("address");
         if (addressTeam != null) {
