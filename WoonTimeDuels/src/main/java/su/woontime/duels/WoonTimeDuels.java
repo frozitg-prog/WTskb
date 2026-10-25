@@ -153,17 +153,22 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         editorSavedArmor.put(id,p.getInventory().getArmorContents().clone());
         editorSavedOffhand.put(id,p.getInventory().getItemInOffHand().clone());
         editingKits.put(id,kit);
-        p.getInventory().clear(); p.getInventory().setArmorContents(null); p.getInventory().setItemInOffHand(null);
-        List<ItemStack> items=personalKitItems(id,kit);
-        if(items==null) items=defaultKitItems(kit);
-        for(ItemStack it:items) if(it!=null) p.getInventory().addItem(it.clone());
-        p.sendMessage(ChatColor.LIGHT_PURPLE+"Редактор кита "+kit+": настрой инвентарь, броню и вторую руку. Закрой инвентарь, чтобы сохранить.");
-        p.openInventory(Bukkit.createInventory(p, 54, EDITOR_TITLE+kit));
-        Inventory edit=p.getOpenInventory().getTopInventory();
-        List<ItemStack> kitItems=personalKitItems(id,kit);
-        if(kitItems==null) kitItems=defaultKitItems(kit);
-        for(int i=0;i<Math.min(36,kitItems.size());i++) if(kitItems.get(i)!=null) edit.setItem(i,kitItems.get(i).clone());
-        p.getInventory().clear();
+        Inventory edit=Bukkit.createInventory(null,54,EDITOR_TITLE+kit);
+        List<String> saved=personalKits.getStringList(id+"."+kit+".layout");
+        if(!saved.isEmpty()) {
+            for(String raw:saved) { String[] parts=raw.split(":",3); if(parts.length<3)continue;
+                int slot=parseInt(parts[0],-1); Material mat=Material.matchMaterial(parts[1]);
+                if(slot>=0&&slot<54&&mat!=null)edit.setItem(slot,new ItemStack(mat,Math.max(1,parseInt(parts[2],1))));
+            }
+        } else {
+            List<ItemStack> items=defaultKitItems(kit);
+            for(int i=0;i<Math.min(36,items.size());i++)edit.setItem(i,items.get(i).clone());
+        }
+        ItemStack pane=new ItemStack(Material.PINK_STAINED_GLASS_PANE);
+        ItemMeta meta=pane.getItemMeta();meta.setDisplayName(ChatColor.LIGHT_PURPLE+"woontime.su");pane.setItemMeta(meta);
+        for(int slot=50;slot<54;slot++)edit.setItem(slot,pane);
+        p.sendMessage(ChatColor.LIGHT_PURPLE+"Редактор: слоты 45–48 — броня, 49 — вторая рука. Закрой меню для сохранения.");
+        p.openInventory(edit);
     }
     private List<ItemStack> defaultKitItems(String kit) {
         List<ItemStack> result=new ArrayList<>();
@@ -183,20 +188,17 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         return result;
     }
     @EventHandler public void onInventoryClose(InventoryCloseEvent e) {
-        if(!(e.getPlayer() instanceof Player p)) return;
-        String title=e.getView().getTitle();
-        if(!title.startsWith(EDITOR_TITLE)) return;
-        UUID id=p.getUniqueId(); String kit=editingKits.remove(id); if(kit==null)return;
-        List<String> saved=new ArrayList<>();
-        for(ItemStack it:e.getInventory().getContents()) if(it!=null && it.getType()!=Material.AIR) saved.add(it.getType().name()+":"+it.getAmount());
-        personalKits.set(id+"."+kit+".items",saved);
-        try { personalKits.save(personalKitsFile); } catch(IOException ex) { getLogger().warning("Could not save personal kit: "+ex.getMessage()); }
+        if(!(e.getPlayer() instanceof Player p) || !e.getView().getTitle().startsWith(EDITOR_TITLE))return;
+        UUID id=p.getUniqueId();String kit=editingKits.remove(id);if(kit==null)return;
+        List<String> layout=new ArrayList<>();
+        for(int slot=0;slot<54;slot++){ItemStack it=e.getInventory().getItem(slot);if(it!=null&&it.getType()!=Material.AIR&&it.getType()!=Material.PINK_STAINED_GLASS_PANE)layout.add(slot+":"+it.getType().name()+":"+it.getAmount());}
+        personalKits.set(id+"."+kit+".layout",layout);
+        try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}
         p.getInventory().clear();
-        ItemStack[] contents=editorSavedItems.remove(id); if(contents!=null)p.getInventory().setContents(contents);
-        ItemStack[] armor=editorSavedArmor.remove(id); if(armor!=null)p.getInventory().setArmorContents(armor);
-        ItemStack offhand=editorSavedOffhand.remove(id); if(offhand!=null)p.getInventory().setItemInOffHand(offhand);
+        ItemStack[] contents=editorSavedItems.remove(id);if(contents!=null)p.getInventory().setContents(contents);
+        ItemStack[] armor=editorSavedArmor.remove(id);if(armor!=null)p.getInventory().setArmorContents(armor);
+        ItemStack offhand=editorSavedOffhand.remove(id);if(offhand!=null)p.getInventory().setItemInOffHand(offhand);
         msg(p,"Твой кит "+kit+" сохранён.");
-        refreshMenus();
     }
     private void joinQueue(Player p, String kit) {
         if (opponents.containsKey(p.getUniqueId())) { msg(p,"Ты уже в дуэли."); return; }
