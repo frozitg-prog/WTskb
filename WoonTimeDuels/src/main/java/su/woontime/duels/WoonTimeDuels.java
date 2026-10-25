@@ -296,7 +296,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         int elapsed=(int)((System.currentTimeMillis()-matchStart.getOrDefault(id,System.currentTimeMillis()))/1000);
         int max=getConfig().getInt("settings.max-rating-change",100), min=getConfig().getInt("settings.min-rating-change",50);
         int delta=Math.max(min,Math.min(max,min+(elapsed/30)*5));
-        if(won){ratings.put(id,Math.max(0,rating(id)+delta)); if(loser!=null)ratings.put(otherId,Math.max(0,rating(otherId)-delta)); msg(winner,"Победа! Рейтинг +"+delta+"."); if(loser!=null)msg(loser,"Поражение. Рейтинг -"+delta+".");}
+        if(won){ratings.put(id,Math.max(0,rating(id)+delta)); emeralds.put(id,emeralds(id)+1); if(loser!=null)ratings.put(otherId,Math.max(0,rating(otherId)-delta)); msg(winner,"Победа! Рейтинг +"+delta+" и +1 алмаз."); if(loser!=null)msg(loser,"Поражение. Рейтинг -"+delta+"."); saveData();}
         if(loser!=null) restore(loser);
         restore(winner);
         msg(winner,reason); if(loser!=null)msg(loser,reason);
