@@ -1,0 +1,29 @@
+name: Build WoonTimeDuels
+on:
+  push:
+    paths:
+      - 'WoonTimeDuels/**'
+      - '.github/workflows/woontime-duels.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: WoonTimeDuels
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: WoonTimeDuels/pom.xml
+      - name: Build plugin
+        run: mvn --batch-mode --no-transfer-progress clean package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WoonTimeDuels
+          path: WoonTimeDuels/target/WoonTimeDuels.jar
+          if-no-files-found: error
+          retention-days: 14
