@@ -302,11 +302,15 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             String loserName=loser!=null?loser.getName():Bukkit.getOfflinePlayer(otherId).getName();
             if(loserName==null)loserName=otherId.toString().substring(0,8);
             String pinkLine=ChatColor.LIGHT_PURPLE+"=====================================";
-            Bukkit.broadcastMessage(pinkLine);
-            Bukkit.broadcastMessage(ChatColor.WHITE+"Победу одержал "+ChatColor.LIGHT_PURPLE+winner.getName());
-            Bukkit.broadcastMessage(ChatColor.WHITE+"Игроку (Win) "+ChatColor.LIGHT_PURPLE+winner.getName()+ChatColor.WHITE+" начислено "+ChatColor.GREEN+"+50"+ChatColor.WHITE+" очков рейтинга");
-            Bukkit.broadcastMessage(ChatColor.WHITE+"Игроку (Loss) "+ChatColor.LIGHT_PURPLE+loserName+ChatColor.WHITE+" забрано "+ChatColor.RED+"-50"+ChatColor.WHITE+" очков рейтинга");
-            Bukkit.broadcastMessage(pinkLine);
+            String[] resultLines = {
+                pinkLine,
+                ChatColor.WHITE+"Победу одержал "+ChatColor.LIGHT_PURPLE+winner.getName(),
+                ChatColor.WHITE+"Игроку (Win) "+ChatColor.LIGHT_PURPLE+winner.getName()+ChatColor.WHITE+" начислено "+ChatColor.GREEN+"+50"+ChatColor.WHITE+" очков рейтинга",
+                ChatColor.WHITE+"Игроку (Loss) "+ChatColor.LIGHT_PURPLE+loserName+ChatColor.WHITE+" забрано "+ChatColor.RED+"-50"+ChatColor.WHITE+" очков рейтинга",
+                pinkLine
+            };
+            winner.sendMessage(resultLines);
+            if(loser!=null) loser.sendMessage(resultLines);
             msg(winner,"Победа! +50 рейтинга и +1 алмаз.");
             if(loser!=null)msg(loser,"Поражение. -50 рейтинга.");
             saveData();
