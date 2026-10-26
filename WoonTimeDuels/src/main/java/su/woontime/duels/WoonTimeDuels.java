@@ -56,6 +56,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private final Map<UUID,Long> queueStarted = new HashMap<>();
     private final Map<UUID,BossBar> queueBars = new HashMap<>();
     private final Map<UUID,String> editingKits = new HashMap<>();
+    private final Map<UUID,List<String>> pendingKitLayouts = new HashMap<>();
+    private static final String PREVIEW_TITLE = ChatColor.LIGHT_PURPLE + "Предпросмотр кита";
     private final Map<UUID,ItemStack[]> editorSavedItems = new HashMap<>();
     private final Map<UUID,ItemStack[]> editorSavedArmor = new HashMap<>();
     private final Map<UUID,ItemStack> editorSavedOffhand = new HashMap<>();
@@ -196,6 +198,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             if(e.getClick().isLeftClick()) { p.closeInventory(); joinQueue(p,name); }
             return;
         }
+        if(title.startsWith(PREVIEW_TITLE)){e.setCancelled(true);if(e.getRawSlot()==52){List<String> layout=pendingKitLayouts.remove(p.getUniqueId());String kit=editingKits.remove(p.getUniqueId());if(layout!=null&&kit!=null){personalKits.set(p.getUniqueId()+"."+kit+".layout",layout);try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}msg(p,"Изменения кита "+kit+" сохранены.");}p.closeInventory();return;}if(e.getRawSlot()==53){pendingKitLayouts.remove(p.getUniqueId());editingKits.remove(p.getUniqueId());msg(p,"Сохранение кита отменено.");p.closeInventory();return;}return;}
         if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta())return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.equalsIgnoreCase("Найти дуэль"))openKits(p);else if(n.equalsIgnoreCase("Статистика"))openStats(p);else if(n.equalsIgnoreCase("Скин на трапку"))msg(p,"Эта функция пока в разработке.");return;}
         if(title.equals(STATS_MENU_TITLE)){e.setCancelled(true);return;}
         if(title.startsWith(EDITOR_TITLE)){if(e.getRawSlot()>=50&&e.getRawSlot()<54){e.setCancelled(true);return;}ItemStack it=e.getCurrentItem();if(it!=null&&it.getType()==Material.PINK_STAINED_GLASS_PANE){e.setCancelled(true);return;}if(e.getClick().isShiftClick()){e.setCancelled(true);return;}return;}
@@ -211,8 +214,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(!saved.isEmpty()) {
             for(String raw:saved){int sep=raw.indexOf('@');if(sep>0){int slot=parseInt(raw.substring(0,sep),-1);ItemStack it=deserializeItem(raw.substring(sep+1));if(slot>=0&&slot<54&&it!=null)edit.setItem(slot,it);}else{String[] parts=raw.split(":",3);if(parts.length>=3){int slot=parseInt(parts[0],-1);Material mat=Material.matchMaterial(parts[1]);if(slot>=0&&slot<54&&mat!=null)edit.setItem(slot,new ItemStack(mat,Math.max(1,parseInt(parts[2],1))));}}}
         } else {
-            List<ItemStack> items=defaultKitItems(kit);
-            for(int i=0;i<Math.min(36,items.size());i++)edit.setItem(i,items.get(i).clone());
+            for(ItemStack item:defaultKitItems(kit)){String n=item.getType().name();if(n.endsWith("_HELMET"))edit.setItem(48,item.clone());else if(n.endsWith("_CHESTPLATE"))edit.setItem(47,item.clone());else if(n.endsWith("_LEGGINGS"))edit.setItem(46,item.clone());else if(n.endsWith("_BOOTS"))edit.setItem(45,item.clone());else {int slot=edit.firstEmpty();if(slot>=0&&slot<36)edit.setItem(slot,item.clone());}}
         }
         ItemStack pane=new ItemStack(Material.PINK_STAINED_GLASS_PANE);
         ItemMeta meta=pane.getItemMeta();meta.setDisplayName(ChatColor.LIGHT_PURPLE+"woontime.su");pane.setItemMeta(meta);
@@ -239,13 +241,16 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         UUID id=p.getUniqueId();String kit=editingKits.remove(id);if(kit==null)return;
         List<String> layout=new ArrayList<>();
         for(int slot=0;slot<54;slot++){ItemStack it=e.getInventory().getItem(slot);if(it!=null&&!it.getType().isAir()&&it.getType()!=Material.PINK_STAINED_GLASS_PANE){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}
-        personalKits.set(id+"."+kit+".layout",layout);
-        try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}
+        pendingKitLayouts.put(id,layout);
         p.getInventory().clear();
         ItemStack[] contents=editorSavedItems.remove(id);if(contents!=null)p.getInventory().setContents(contents);
         ItemStack[] armor=editorSavedArmor.remove(id);if(armor!=null)p.getInventory().setArmorContents(armor);
         ItemStack offhand=editorSavedOffhand.remove(id);if(offhand!=null)p.getInventory().setItemInOffHand(offhand);
-        msg(p,"Твой кит "+kit+" сохранён.");
+        Inventory preview=Bukkit.createInventory(null,54,PREVIEW_TITLE+" • "+kit);
+        for(String raw:layout){int sep=raw.indexOf('@');if(sep>0){int slot=parseInt(raw.substring(0,sep),-1);ItemStack item=deserializeItem(raw.substring(sep+1));if(slot>=0&&slot<50&&item!=null)preview.setItem(slot,item);}}
+        preview.setItem(52,namedItem(Material.LIME_CONCRETE,"Сохранить изменения",List.of(ChatColor.GRAY+"Подтвердить и сохранить кит")));
+        preview.setItem(53,namedItem(Material.RED_CONCRETE,"Отменить",List.of(ChatColor.GRAY+"Не сохранять изменения")));
+        p.openInventory(preview);
     }
     private void joinQueue(Player p, String kit) {
         if (opponents.containsKey(p.getUniqueId())) { msg(p,"Ты уже в дуэли."); return; }
@@ -450,7 +455,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private void refreshLeaderboard(String type,String title,boolean kills){
         Location base=loc("leaderboards."+type);if(base==null)return;
         for(UUID entityId:leaderboardEntities.getOrDefault(type,List.of())){Entity entity=Bukkit.getEntity(entityId);if(entity!=null)entity.remove();}
-        List<UUID> known=new ArrayList<>();for(String key:data.getKeys(false)){try{known.add(UUID.fromString(key));}catch(IllegalArgumentException ignored){}}
+        List<UUID> known=new ArrayList<>();for(OfflinePlayer offline:Bukkit.getOfflinePlayers())if(offline.hasPlayedBefore()||offline.isOnline())known.add(offline.getUniqueId());
+        for(String key:data.getKeys(false)){try{UUID uuid=UUID.fromString(key);if(!known.contains(uuid))known.add(uuid);}catch(IllegalArgumentException ignored){}}
         for(Player online:Bukkit.getOnlinePlayers())if(!known.contains(online.getUniqueId()))known.add(online.getUniqueId());
         known.sort((u,v)->Integer.compare(kills?getPlayerKills(v):getWins(v),kills?getPlayerKills(u):getWins(u)));
         List<UUID> spawned=new ArrayList<>();
