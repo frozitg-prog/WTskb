@@ -397,6 +397,10 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     }
     public int getRating(UUID id){return rating(id);}
     public int getEmeralds(UUID id){return emeralds(id);}
+    public int getWins(UUID id){return stat(id,"wins");}
+    public int getLosses(UUID id){return stat(id,"losses");}
+    public int getPlayedDuels(UUID id){return stat(id,"played");}
+    public int getPlayerKills(UUID id){return Bukkit.getOfflinePlayer(id).getStatistic(Statistic.PLAYER_KILLS);}
     public int getSearchingCount(){return queue.size();}
     public int getFightingCount(){return new HashSet<>(opponents.keySet()).size()/2;}
     private static final class netPlaceholderExpansion extends me.clip.placeholderapi.expansion.PlaceholderExpansion {
@@ -408,6 +412,10 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             if(player==null)return "";
             if(params.equalsIgnoreCase("rating"))return String.valueOf(plugin.getRating(player.getUniqueId()));
             if(params.equalsIgnoreCase("emeralds"))return String.valueOf(plugin.getEmeralds(player.getUniqueId()));
+            if(params.equalsIgnoreCase("wins"))return String.valueOf(plugin.getWins(player.getUniqueId()));
+            if(params.equalsIgnoreCase("losses"))return String.valueOf(plugin.getLosses(player.getUniqueId()));
+            if(params.equalsIgnoreCase("played"))return String.valueOf(plugin.getPlayedDuels(player.getUniqueId()));
+            if(params.equalsIgnoreCase("kills"))return String.valueOf(plugin.getPlayerKills(player.getUniqueId()));
             if(params.equalsIgnoreCase("searching"))return String.valueOf(plugin.getSearchingCount());
             if(params.equalsIgnoreCase("fighting"))return String.valueOf(plugin.getFightingCount());
             return null;
