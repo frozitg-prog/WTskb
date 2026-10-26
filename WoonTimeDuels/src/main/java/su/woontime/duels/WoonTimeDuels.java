@@ -448,18 +448,18 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
                 ConfigurationSection holograms=getConfig().getConfigurationSection("leaderboards.instances");
                 Set<String> ids=holograms==null?new HashSet<>():new HashSet<>(holograms.getKeys(false));
                 for(String id:ids)removeHologramEntities(id);
-                // Also clean up legacy, untagged WoonTime leaderboard stands from older plugin versions.
-                // Restrict removal to configured leaderboard locations and recognizable leaderboard name patterns.
+                // Remove legacy, untagged leaderboard stands around each configured location.
+                // Older versions may have no scoreboard tags and names may differ, so identify
+                // the plugin's invisible marker stands by their entity properties instead.
                 int legacyRemoved=0;
                 for(String id:ids){
                     Location base=loc("leaderboards.instances."+id);
                     if(base==null)continue;
-                    for(Entity entity:new ArrayList<>(base.getWorld().getNearbyEntities(base,1.75,4.0,1.75))){
+                    for(Entity entity:new ArrayList<>(base.getWorld().getNearbyEntities(base,4.0,15.0,4.0))){
                         if(!(entity instanceof ArmorStand stand))continue;
-                        String raw=stand.getCustomName();
-                        if(raw==null)continue;
-                        String plain=ChatColor.stripColor(raw);
-                        if(plain!=null&&(plain.startsWith("✦ ТОП-10 ")||plain.matches("#\\\\d+ .+ — \\d+"))){stand.remove();legacyRemoved++;}
+                        if(!stand.isInvisible()||!stand.isMarker()||!stand.isCustomNameVisible())continue;
+                        stand.remove();
+                        legacyRemoved++;
                     }
                 }
                 getConfig().set("leaderboards.instances",null);
