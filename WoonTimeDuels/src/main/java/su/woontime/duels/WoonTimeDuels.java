@@ -16,6 +16,11 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Criteria;
 import org.bukkit.event.block.Action;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
@@ -68,6 +73,39 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private File personalKitsFile;
     private File dataFile;
     private YamlConfiguration data;
+    private static final String RATING_TEAM_PREFIX = "wt_rating_";
+    private static final String HEALTH_OBJECTIVE = "wt_health";
+
+    private void setupPlayerTags() {
+        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        Objective health = board.getObjective(HEALTH_OBJECTIVE);
+        if (health == null) {
+            try { health = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH, ChatColor.RED + "❤"); }
+            catch (IllegalArgumentException ignored) { health = board.getObjective(HEALTH_OBJECTIVE); }
+        }
+        if (health != null) health.setDisplaySlot(DisplaySlot.BELOW_NAME);
+        for (Player player : Bukkit.getOnlinePlayers()) updatePlayerTag(player);
+    }
+
+    private void updatePlayerTag(Player player) {
+        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        String teamName = RATING_TEAM_PREFIX + player.getUniqueId().toString().replace("-", "").substring(0, 12);
+        Team team = board.getTeam(teamName);
+        if (team == null) team = board.registerNewTeam(teamName);
+        team.setPrefix("");
+        team.setSuffix(ChatColor.GRAY + " (" + ChatColor.LIGHT_PURPLE + rating(player.getUniqueId()) + ChatColor.GRAY + ")");
+        Team old = board.getEntryTeam(player.getName());
+        if (old != null && old != team && old.getName().startsWith(RATING_TEAM_PREFIX)) old.removeEntry(player.getName());
+        if (!team.hasEntry(player.getName())) team.addEntry(player.getName());
+    }
+
+    @EventHandler public void onPlayerJoinTag(org.bukkit.event.player.PlayerJoinEvent event) {
+        updatePlayerTag(event.getPlayer());
+        Bukkit.getScheduler().runTask(this, () -> {
+            for (Player online : Bukkit.getOnlinePlayers()) updatePlayerTag(online);
+        });
+    }
+
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -81,6 +119,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         dataFile = new File(getDataFolder(), "players.yml");
         data = YamlConfiguration.loadConfiguration(dataFile);
         migrateLegacyLeaderboards();
+        setupPlayerTags();
+        new BukkitRunnable(){ public void run(){ for(Player player:Bukkit.getOnlinePlayers()) updatePlayerTag(player); } }.runTaskTimer(this,20L,20L);
         refreshLeaderboards();
         new BukkitRunnable(){ public void run(){ refreshLeaderboards(); } }.runTaskTimer(this,1200L,1200L);
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
