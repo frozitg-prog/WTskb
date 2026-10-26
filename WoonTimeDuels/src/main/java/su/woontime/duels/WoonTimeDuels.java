@@ -328,16 +328,13 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         UUID id=p.getUniqueId();String kit=editingKits.remove(id);if(kit==null)return;
         List<String> layout=new ArrayList<>();
         Inventory inv=e.getInventory();for(int slot=0;slot<=35;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}for(int slot=45;slot<=48;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}ItemStack kitOffhand=inv.getItem(50);if(kitOffhand!=null&&!kitOffhand.getType().isAir()){String encoded=serializeItem(kitOffhand);if(!encoded.isEmpty())layout.add("50@"+encoded);}
-        pendingKitLayouts.put(id,layout);
+        personalKits.set(id+"."+kit+".layout",layout);
+        try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}
         p.getInventory().clear();
         ItemStack[] contents=editorSavedItems.remove(id);if(contents!=null)p.getInventory().setContents(contents);
         ItemStack[] armor=editorSavedArmor.remove(id);if(armor!=null)p.getInventory().setArmorContents(armor);
         ItemStack offhand=editorSavedOffhand.remove(id);if(offhand!=null)p.getInventory().setItemInOffHand(offhand);
-        Inventory preview=Bukkit.createInventory(null,54,PREVIEW_TITLE+" • "+kit);
-        for(String raw:layout){int sep=raw.indexOf('@');if(sep>0){int slot=parseInt(raw.substring(0,sep),-1);ItemStack item=deserializeItem(raw.substring(sep+1));if(slot>=0&&isKitEditableSlot(slot)&&item!=null)preview.setItem(slot,item);}}
-        preview.setItem(52,namedItem(Material.LIME_CONCRETE,"Сохранить изменения",List.of(ChatColor.GRAY+"Подтвердить и сохранить кит")));
-        preview.setItem(53,namedItem(Material.RED_CONCRETE,"Отменить",List.of(ChatColor.GRAY+"Не сохранять изменения")));
-        p.openInventory(preview);
+        msg(p,"Изменения кита "+kit+" сохранены.");
     }
     private void joinQueue(Player p, String kit) {
         if (opponents.containsKey(p.getUniqueId())) { msg(p,"Ты уже в дуэли."); return; }
