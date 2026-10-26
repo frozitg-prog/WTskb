@@ -57,6 +57,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private final Map<UUID,BossBar> queueBars = new HashMap<>();
     private final Map<UUID,String> editingKits = new HashMap<>();
     private final Map<UUID,List<String>> pendingKitLayouts = new HashMap<>();
+    private final Set<UUID> returnToKitSelection = new HashSet<>();
     private static final String PREVIEW_TITLE = ChatColor.LIGHT_PURPLE + "Предпросмотр кита";
     private final Map<UUID,ItemStack[]> editorSavedItems = new HashMap<>();
     private final Map<UUID,ItemStack[]> editorSavedArmor = new HashMap<>();
@@ -207,10 +208,10 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             if(e.getClick().isLeftClick()) { p.closeInventory(); joinQueue(p,name); }
             return;
         }
-        if(title.startsWith(PREVIEW_TITLE)){e.setCancelled(true);if(e.getRawSlot()==52){List<String> layout=pendingKitLayouts.remove(p.getUniqueId());String kit=editingKits.remove(p.getUniqueId());if(layout!=null&&kit!=null){personalKits.set(p.getUniqueId()+"."+kit+".layout",layout);try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}msg(p,"Изменения кита "+kit+" сохранены.");}p.closeInventory();return;}if(e.getRawSlot()==53){pendingKitLayouts.remove(p.getUniqueId());editingKits.remove(p.getUniqueId());msg(p,"Сохранение кита отменено.");p.closeInventory();return;}return;}
+        if(title.startsWith(PREVIEW_TITLE)){e.setCancelled(true);if(e.getRawSlot()==52){List<String> layout=pendingKitLayouts.remove(p.getUniqueId());String kit=editingKits.remove(p.getUniqueId());if(layout!=null&&kit!=null){personalKits.set(p.getUniqueId()+"."+kit+".layout",layout);try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}msg(p,"Изменения кита "+kit+" сохранены.");}boolean back=returnToKitSelection.remove(p.getUniqueId());p.closeInventory();if(back)Bukkit.getScheduler().runTask(this,()->openKits(p));return;}if(e.getRawSlot()==53){pendingKitLayouts.remove(p.getUniqueId());editingKits.remove(p.getUniqueId());msg(p,"Сохранение кита отменено.");boolean back=returnToKitSelection.remove(p.getUniqueId());p.closeInventory();if(back)Bukkit.getScheduler().runTask(this,()->openKits(p));return;}return;}
         if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta())return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.equalsIgnoreCase("Найти дуэль"))openKits(p);else if(n.equalsIgnoreCase("Статистика"))openStats(p);else if(n.equalsIgnoreCase("Скин на трапку"))msg(p,"Эта функция пока в разработке.");return;}
         if(title.equals(STATS_MENU_TITLE)){e.setCancelled(true);return;}
-        if(title.equals(EDITOR_TITLE)){int raw=e.getRawSlot();if(raw==51){e.setCancelled(true);p.closeInventory();return;}if(!isKitEditableSlot(raw)||e.getClickedInventory()!=e.getView().getTopInventory()||e.getClick().isShiftClick()||e.getClick().isKeyboardClick()||e.getClick()==ClickType.DOUBLE_CLICK||e.getClick()==ClickType.DROP||e.getClick()==ClickType.CONTROL_DROP){e.setCancelled(true);return;}if(raw>=45&&raw<=48){ItemStack cursor=e.getCursor();if(cursor!=null&&!cursor.getType().isAir()&&!isArmorForSlot(raw,cursor)){e.setCancelled(true);return;}}return;}
+        if(title.equals(EDITOR_TITLE)){int raw=e.getRawSlot();if(raw==51){e.setCancelled(true);returnToKitSelection.add(p.getUniqueId());p.closeInventory();return;}if(!isKitEditableSlot(raw)||e.getClickedInventory()!=e.getView().getTopInventory()||e.getClick().isShiftClick()||e.getClick().isKeyboardClick()||e.getClick()==ClickType.DOUBLE_CLICK||e.getClick()==ClickType.DROP||e.getClick()==ClickType.CONTROL_DROP){e.setCancelled(true);return;}if(raw>=45&&raw<=48){ItemStack cursor=e.getCursor();if(cursor!=null&&!cursor.getType().isAir()&&!isArmorForSlot(raw,cursor)){e.setCancelled(true);return;}}return;}
     }
     private void openKitEditor(Player p,String kit) {
         UUID id=p.getUniqueId();
