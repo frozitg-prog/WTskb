@@ -121,6 +121,16 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
                 title
         );
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+
+        // This plugin assigns a private scoreboard to each player. Recreate the
+        // duel health objective on that scoreboard so BELOW_NAME health remains visible.
+        Objective health = board.getObjective("wt_health");
+        if (health == null) {
+            health = board.registerNewObjective("wt_health", Criteria.HEALTH,
+                    Component.text("❤", net.kyori.adventure.text.format.NamedTextColor.RED));
+        }
+        health.setDisplaySlot(DisplaySlot.BELOW_NAME);
+
         // Hide score numbers on Paper versions that expose the number-format API.
         hideScoreNumbers(objective);
 
