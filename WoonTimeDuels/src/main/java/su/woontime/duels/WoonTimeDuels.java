@@ -444,7 +444,25 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     }
     private boolean admin(CommandSender s,String[] a) {
         if(!s.hasPermission("woontime.duels.admin")){msg(s,"Недостаточно прав.");return true;}
-        if(a.length>=2 && a[0].equalsIgnoreCase("hologram") && s instanceof Player p && (a[1].equalsIgnoreCase("kills")||a[1].equalsIgnoreCase("wins"))){String type=a[1].toLowerCase(Locale.ROOT);Location l=p.getLocation();String path="leaderboards."+type;getConfig().set(path+".world",l.getWorld().getName());getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());saveConfig();refreshLeaderboards();msg(s,"Голограмма ТОП-10 "+type+" установлена здесь.");return true;}
+        if(a.length>=2 && a[0].equalsIgnoreCase("hologram")){
+            String type=a[1].toLowerCase(Locale.ROOT);
+            if(a.length>=3 && a[1].equalsIgnoreCase("remove")){
+                type=a[2].toLowerCase(Locale.ROOT);
+                if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Укажи тип: kills или wins.");return true;}
+                getConfig().set("leaderboards."+type,null);
+                saveConfig();
+                refreshLeaderboard(type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":"ПОБЕД В ДУЭЛЯХ",type.equals("kills"));
+                msg(s,"Голограмма ТОП-10 "+type+" удалена.");
+                return true;
+            }
+            if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Укажи тип: kills или wins.");return true;}
+            if(a.length==2 && s instanceof Player p){
+                Location l=p.getLocation();String path="leaderboards."+type;
+                getConfig().set(path+".world",l.getWorld().getName());getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());
+                saveConfig();refreshLeaderboards();msg(s,"Голограмма ТОП-10 "+type+" установлена здесь.");return true;
+            }
+            msg(s,"Использование: /dueladmin hologram <kills|wins> или /dueladmin hologram remove <kills|wins>");return true;
+        }
         if(a.length>=3 && a[0].equalsIgnoreCase("rating")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}ratings.put(p.getUniqueId(),Math.max(0,parseInt(a[2],1000)));msg(s,"Рейтинг установлен: "+ratings.get(p.getUniqueId()));saveData();return true;}
         if(a.length>=3 && a[0].equalsIgnoreCase("emeralds")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}emeralds.put(p.getUniqueId(),Math.max(0,parseInt(a[2],0)));msg(s,"Баланс изумрудов установлен.");saveData();return true;}
         if(a.length>=4 && a[0].equalsIgnoreCase("arena") && a[1].equalsIgnoreCase("setspawn") && s instanceof Player p){String path="arenas."+a[2]+".spawn"+a[3];Location l=p.getLocation();getConfig().set(path+".world",l.getWorld().getName());getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());getConfig().set(path+".yaw",l.getYaw());getConfig().set(path+".pitch",l.getPitch());saveConfig();msg(s,"Спавн "+a[3]+" арены "+a[2]+" сохранён.");return true;}
@@ -465,8 +483,9 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     }
     private void refreshLeaderboards(){refreshLeaderboard("kills","УБИЙСТВ ИГРОКОВ",true);refreshLeaderboard("wins","ПОБЕД В ДУЭЛЯХ",false);}
     private void refreshLeaderboard(String type,String title,boolean kills){
-        Location base=loc("leaderboards."+type);if(base==null)return;
         for(UUID entityId:leaderboardEntities.getOrDefault(type,List.of())){Entity entity=Bukkit.getEntity(entityId);if(entity!=null)entity.remove();}
+        leaderboardEntities.remove(type);
+        Location base=loc("leaderboards."+type);if(base==null)return;
         List<UUID> known=new ArrayList<>();for(OfflinePlayer offline:Bukkit.getOfflinePlayers())if(offline.hasPlayedBefore()||offline.isOnline())known.add(offline.getUniqueId());
         for(String key:data.getKeys(false)){try{UUID uuid=UUID.fromString(key);if(!known.contains(uuid))known.add(uuid);}catch(IllegalArgumentException ignored){}}
         for(Player online:Bukkit.getOnlinePlayers())if(!known.contains(online.getUniqueId()))known.add(online.getUniqueId());
