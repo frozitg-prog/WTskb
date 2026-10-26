@@ -79,6 +79,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         try { if (!personalKitsFile.exists()) { getDataFolder().mkdirs(); personalKitsFile.createNewFile(); } personalKits.load(personalKitsFile); } catch (Exception ex) { getLogger().warning("Could not load personal kits: " + ex.getMessage()); }
         dataFile = new File(getDataFolder(), "players.yml");
         data = YamlConfiguration.loadConfiguration(dataFile);
+        migrateLegacyLeaderboards();
         refreshLeaderboards();
         new BukkitRunnable(){ public void run(){ refreshLeaderboards(); } }.runTaskTimer(this,1200L,1200L);
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -431,23 +432,25 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private boolean admin(CommandSender s,String[] a) {
         if(!s.hasPermission("woontime.duels.admin")){msg(s,"Недостаточно прав.");return true;}
         if(a.length>=2 && a[0].equalsIgnoreCase("hologram")){
+            if(a[1].equalsIgnoreCase("remove")){
+                if(a.length<3){msg(s,"Использование: /dueladmin hologram remove <ID>");return true;}
+                String id=a[2];
+                ConfigurationSection holograms=getConfig().getConfigurationSection("leaderboards.instances");
+                if(holograms==null||!holograms.contains(id)){msg(s,"Голограмма с ID "+id+" не найдена.");return true;}
+                removeHologramEntities(id);getConfig().set("leaderboards.instances."+id,null);saveConfig();
+                msg(s,"Голограмма "+id+" удалена.");return true;
+            }
             String type=a[1].toLowerCase(Locale.ROOT);
-            if(a.length>=3 && a[1].equalsIgnoreCase("remove")){
-                type=a[2].toLowerCase(Locale.ROOT);
-                if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Укажи тип: kills или wins.");return true;}
-                getConfig().set("leaderboards."+type,null);
-                saveConfig();
-                refreshLeaderboard(type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":"ПОБЕД В ДУЭЛЯХ",type.equals("kills"));
-                msg(s,"Голограмма ТОП-10 "+type+" удалена.");
-                return true;
-            }
-            if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Укажи тип: kills или wins.");return true;}
-            if(a.length==2 && s instanceof Player p){
-                Location l=p.getLocation();String path="leaderboards."+type;
-                getConfig().set(path+".world",l.getWorld().getName());getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());
-                saveConfig();refreshLeaderboards();msg(s,"Голограмма ТОП-10 "+type+" установлена здесь.");return true;
-            }
-            msg(s,"Использование: /dueladmin hologram <kills|wins> или /dueladmin hologram remove <kills|wins>");return true;
+            if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Использование: /dueladmin hologram <kills|wins> или /dueladmin hologram remove <ID>");return true;}
+            if(!(s instanceof Player p)){msg(s,"Создавать голограммы можно только в игре.");return true;}
+            ConfigurationSection holograms=getConfig().getConfigurationSection("leaderboards.instances");
+            Set<String> ids=holograms==null?new HashSet<>():new HashSet<>(holograms.getKeys(false));
+            int number=1;while(ids.contains("holo"+number))number++;
+            String id="holo"+number;Location l=p.getLocation();String path="leaderboards.instances."+id;
+            getConfig().set(path+".type",type);getConfig().set(path+".world",l.getWorld().getName());
+            getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());
+            saveConfig();refreshLeaderboard(id,type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":"ПОБЕД В ДУЭЛЯХ",type.equals("kills"));
+            msg(s,"Голограмма создана. ID: "+id+" — удалить: /dueladmin hologram remove "+id);return true;
         }
         if(a.length>=3 && a[0].equalsIgnoreCase("rating")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}ratings.put(p.getUniqueId(),Math.max(0,parseInt(a[2],1000)));msg(s,"Рейтинг установлен: "+ratings.get(p.getUniqueId()));saveData();return true;}
         if(a.length>=3 && a[0].equalsIgnoreCase("emeralds")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}emeralds.put(p.getUniqueId(),Math.max(0,parseInt(a[2],0)));msg(s,"Баланс изумрудов установлен.");saveData();return true;}
@@ -467,19 +470,44 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         }
         msg(s,"Использование: /dueladmin hologram <kills|wins> | arena setspawn <арена> <1|2> | kit create <имя> | kit delete <имя> | rating <ник> <число> | emeralds <ник> <число>");return true;
     }
-    private void refreshLeaderboards(){refreshLeaderboard("kills","УБИЙСТВ ИГРОКОВ",true);refreshLeaderboard("wins","ПОБЕД В ДУЭЛЯХ",false);}
-    private void refreshLeaderboard(String type,String title,boolean kills){
-        for(UUID entityId:leaderboardEntities.getOrDefault(type,List.of())){Entity entity=Bukkit.getEntity(entityId);if(entity!=null)entity.remove();}
-        leaderboardEntities.remove(type);
-        Location base=loc("leaderboards."+type);if(base==null)return;
+    private void migrateLegacyLeaderboards(){
+        for(String type:List.of("kills","wins")){
+            String oldPath="leaderboards."+type;
+            if(getConfig().contains(oldPath+".world")){
+                ConfigurationSection section=getConfig().getConfigurationSection("leaderboards.instances");
+                Set<String> ids=section==null?new HashSet<>():new HashSet<>(section.getKeys(false));
+                int number=1;while(ids.contains("holo"+number))number++;
+                String path="leaderboards.instances.holo"+number;
+                for(String key:List.of("world","x","y","z"))if(getConfig().contains(oldPath+"."+key))getConfig().set(path+"."+key,getConfig().get(oldPath+"."+key));
+                getConfig().set(path+".type",type);getConfig().set(oldPath,null);
+            }
+        }
+        saveConfig();
+    }
+    private void refreshLeaderboards(){
+        ConfigurationSection section=getConfig().getConfigurationSection("leaderboards.instances");
+        if(section==null)return;
+        for(String id:section.getKeys(false)){
+            String type=section.getString(id+".type","kills");if(!type.equals("kills")&&!type.equals("wins"))continue;
+            refreshLeaderboard(id,type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":"ПОБЕД В ДУЭЛЯХ",type.equals("kills"));
+        }
+    }
+    private void removeHologramEntities(String id){
+        for(World world:Bukkit.getWorlds())for(Entity entity:world.getEntities())if(entity.getScoreboardTags().contains("woontime_hologram_"+id))entity.remove();
+        for(UUID entityId:leaderboardEntities.getOrDefault(id,List.of())){Entity entity=Bukkit.getEntity(entityId);if(entity!=null)entity.remove();}
+        leaderboardEntities.remove(id);
+    }
+    private void refreshLeaderboard(String id,String type,String title,boolean kills){
+        removeHologramEntities(id);
+        Location base=loc("leaderboards.instances."+id);if(base==null)return;
         List<UUID> known=new ArrayList<>();for(OfflinePlayer offline:Bukkit.getOfflinePlayers())if(offline.hasPlayedBefore()||offline.isOnline())known.add(offline.getUniqueId());
         for(String key:data.getKeys(false)){try{UUID uuid=UUID.fromString(key);if(!known.contains(uuid))known.add(uuid);}catch(IllegalArgumentException ignored){}}
         for(Player online:Bukkit.getOnlinePlayers())if(!known.contains(online.getUniqueId()))known.add(online.getUniqueId());
         known.sort((u,v)->Integer.compare(kills?getPlayerKills(v):getWins(v),kills?getPlayerKills(u):getWins(u)));
         List<UUID> spawned=new ArrayList<>();
-        ArmorStand head=base.getWorld().spawn(base.clone().add(0,0.25,0),ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(ChatColor.LIGHT_PURPLE+"✦ ТОП-10 "+title+" ✦");as.setPersistent(true);});spawned.add(head.getUniqueId());
-        int rank=0;for(UUID uuid:known){if(rank>=10)break;OfflinePlayer op=Bukkit.getOfflinePlayer(uuid);String name=op.getName();if(name==null)name=uuid.toString().substring(0,8);int score=kills?getPlayerKills(uuid):getWins(uuid);Location line=base.clone().add(0,-0.28*(rank+1),0);String text=ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name+ChatColor.GRAY+" — "+ChatColor.WHITE+score;ArmorStand stand=base.getWorld().spawn(line,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(text);as.setPersistent(true);});spawned.add(stand.getUniqueId());rank++;}
-        leaderboardEntities.put(type,spawned);
+        ArmorStand head=base.getWorld().spawn(base.clone().add(0,0.25,0),ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(ChatColor.LIGHT_PURPLE+"✦ ТОП-10 "+title+" ✦");as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(head.getUniqueId());
+        int rank=0;for(UUID uuid:known){if(rank>=10)break;OfflinePlayer op=Bukkit.getOfflinePlayer(uuid);String name=op.getName();if(name==null)name=uuid.toString().substring(0,8);int score=kills?getPlayerKills(uuid):getWins(uuid);Location line=base.clone().add(0,-0.28*(rank+1),0);String text=ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name+ChatColor.GRAY+" — "+ChatColor.WHITE+score;ArmorStand stand=base.getWorld().spawn(line,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(text);as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(stand.getUniqueId());rank++;}
+        leaderboardEntities.put(id,spawned);
     }
     public int getRating(UUID id){return rating(id);}
     public int getEmeralds(UUID id){return emeralds(id);}
