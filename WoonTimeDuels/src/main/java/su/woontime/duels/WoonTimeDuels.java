@@ -28,6 +28,7 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -138,6 +139,17 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private void fillEditorDecorations(Inventory inv){
         ItemStack pane=editorPane();for(int slot=36;slot<=44;slot++)inv.setItem(slot,pane.clone());inv.setItem(49,pane.clone());inv.setItem(52,pane.clone());inv.setItem(53,pane.clone());
         inv.setItem(51,namedItem(Material.ARROW,ChatColor.YELLOW+"Вернуться к выбору китов",List.of(ChatColor.GRAY+"Закрыть редактор и сохранить изменения")));
+    }
+    @EventHandler public void onSelectorSwordDrop(PlayerDropItemEvent e){
+        ItemStack item=e.getItemDrop().getItemStack();
+        if(item.getType().name().endsWith("_SWORD")&&item.hasItemMeta()&&item.getItemMeta().hasDisplayName()){
+            String name=ChatColor.stripColor(item.getItemMeta().getDisplayName()).toLowerCase(Locale.ROOT);
+            if(name.contains("duel")||name.contains("дуэл")||name.contains("woontime")||name.contains("поиск")){
+                e.setCancelled(true);
+                e.getItemDrop().remove();
+                msg(e.getPlayer(),"Этот меч нельзя выбросить.");
+            }
+        }
     }
     @EventHandler public void onFoodLevelChange(FoodLevelChangeEvent e){if(e.getEntity() instanceof Player)e.setCancelled(true);}
     @EventHandler public void onCountdownMove(PlayerMoveEvent e){
