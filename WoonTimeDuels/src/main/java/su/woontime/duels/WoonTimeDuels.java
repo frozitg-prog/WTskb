@@ -13,12 +13,9 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.event.block.Action;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
@@ -142,17 +139,6 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         inv.setItem(51,namedItem(Material.ARROW,ChatColor.YELLOW+"Вернуться к выбору китов",List.of(ChatColor.GRAY+"Закрыть редактор и сохранить изменения")));
     }
     @EventHandler public void onFoodLevelChange(FoodLevelChangeEvent e){if(e.getEntity() instanceof Player)e.setCancelled(true);}
-    @EventHandler public void onJoin(PlayerJoinEvent e){ giveSelector(e.getPlayer()); }
-    private void giveSelector(Player p){
-        ItemStack selector=namedItem(Material.IRON_SWORD,"Выбор дуэли",List.of(ChatColor.GRAY+"ПКМ — открыть меню дуэлей"));
-        ItemMeta meta=selector.getItemMeta();meta.setUnbreakable(true);meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES,ItemFlag.HIDE_UNBREAKABLE);selector.setItemMeta(meta);
-        p.getInventory().setItem(0,selector);
-    }
-    @EventHandler public void onSelectorUse(PlayerInteractEvent e){
-        if(e.getHand()!=EquipmentSlot.HAND || (e.getAction()!=Action.RIGHT_CLICK_AIR && e.getAction()!=Action.RIGHT_CLICK_BLOCK))return;
-        ItemStack item=e.getItem();if(item==null||!item.hasItemMeta()||!item.getItemMeta().hasDisplayName())return;
-        if(ChatColor.stripColor(item.getItemMeta().getDisplayName()).equalsIgnoreCase("Выбор дуэли")){e.setCancelled(true);openMainMenu(e.getPlayer());}
-    }
     @EventHandler public void onCountdownMove(PlayerMoveEvent e){
         if(!countdownFrozen.contains(e.getPlayer().getUniqueId())||e.getTo()==null)return;
         if(e.getFrom().getX()!=e.getTo().getX()||e.getFrom().getY()!=e.getTo().getY()||e.getFrom().getZ()!=e.getTo().getZ())
@@ -413,7 +399,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         returns.remove(id);
         World w=Bukkit.getWorld(getConfig().getString("settings.arena-world","world"));
         if(w!=null)p.teleport(w.getSpawnLocation());
-        p.setFireTicks(0);p.setHealth(Math.min(p.getMaxHealth(),20));p.setFoodLevel(20);p.setSaturation(20);giveSelector(p);
+        p.setFireTicks(0);p.setHealth(Math.min(p.getMaxHealth(),20));p.setFoodLevel(20);p.setSaturation(20);
     }
     @EventHandler public void onDeath(PlayerDeathEvent e) {
         Player p=e.getEntity(); UUID opp=opponents.get(p.getUniqueId()); if(opp==null){Bukkit.getScheduler().runTask(this,()->{if(p.isOnline()&&p.isDead())p.spigot().respawn();});return;}
