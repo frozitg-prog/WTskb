@@ -84,8 +84,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             try { health = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH, ChatColor.RED + "❤"); }
             catch (IllegalArgumentException ignored) { health = board.getObjective(HEALTH_OBJECTIVE); }
         }
-        // Health is displayed by the custom name-line updater, not the vanilla below-name objective.
-        if (health != null) health.setDisplaySlot(null);
+        // Display current health below each player name with the vanilla health objective.
+        if (health != null) health.setDisplaySlot(DisplaySlot.BELOW_NAME);
         for (Player player : Bukkit.getOnlinePlayers()) updatePlayerTag(player);
     }
 
@@ -613,16 +613,32 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         leaderboardEntities.remove(id);
     }
     private void refreshLeaderboard(String id,String type,String title,boolean kills){
-        removeHologramEntities(id);
         Location base=loc("leaderboards.instances."+id);if(base==null)return;
         List<UUID> known=new ArrayList<>();for(OfflinePlayer offline:Bukkit.getOfflinePlayers())if(offline.hasPlayedBefore()||offline.isOnline())known.add(offline.getUniqueId());
         for(String key:data.getKeys(false)){try{UUID uuid=UUID.fromString(key);if(!known.contains(uuid))known.add(uuid);}catch(IllegalArgumentException ignored){}}
         for(Player online:Bukkit.getOnlinePlayers())if(!known.contains(online.getUniqueId()))known.add(online.getUniqueId());
         known.sort((u,v)->Integer.compare(leaderboardScore(v,type,kills),leaderboardScore(u,type,kills)));
-        List<UUID> spawned=new ArrayList<>();
-        ArmorStand head=base.getWorld().spawn(base.clone().add(0,0.25,0),ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(ChatColor.LIGHT_PURPLE+"✦ ТОП-10 "+title+" ✦");as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(head.getUniqueId());
-        int rank=0;for(UUID uuid:known){if(rank>=10)break;OfflinePlayer op=Bukkit.getOfflinePlayer(uuid);String name=op.getName();if(name==null)name=uuid.toString().substring(0,8);int score=leaderboardScore(uuid,type,kills);Location nameLine=base.clone().add(0,-0.32*(rank*2+1),0);Location scoreLine=base.clone().add(0,-0.32*(rank*2+2),0);String nameText=ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name;String scoreText=ChatColor.GRAY+"Значение: "+ChatColor.WHITE+score;ArmorStand nameStand=base.getWorld().spawn(nameLine,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(nameText);as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(nameStand.getUniqueId());ArmorStand scoreStand=base.getWorld().spawn(scoreLine,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(scoreText);as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(scoreStand.getUniqueId());rank++;}
-        leaderboardEntities.put(id,spawned);
+        String tag="woontime_hologram_"+id;
+        List<ArmorStand> stands=new ArrayList<>();
+        for(Entity entity:base.getWorld().getEntities())if(entity instanceof ArmorStand stand&&stand.getScoreboardTags().contains(tag))stands.add(stand);
+        stands.sort(Comparator.comparingDouble(st->-st.getLocation().getY()));
+        int wanted=1+Math.min(10,known.size())*2;
+        while(stands.size()>wanted)stands.remove(stands.size()-1).remove();
+        while(stands.size()<wanted){
+            ArmorStand stand=base.getWorld().spawn(base,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setPersistent(true);as.addScoreboardTag(tag);});
+            stands.add(stand);
+        }
+        stands.get(0).teleport(base.clone().add(0,0.25,0));
+        stands.get(0).setCustomName(ChatColor.LIGHT_PURPLE+"✦ ТОП-10 "+title+" ✦");
+        for(int rank=0;rank<Math.min(10,known.size());rank++){
+            UUID uuid=known.get(rank);OfflinePlayer op=Bukkit.getOfflinePlayer(uuid);String name=op.getName();if(name==null)name=uuid.toString().substring(0,8);
+            ArmorStand nameStand=stands.get(1+rank*2),scoreStand=stands.get(2+rank*2);
+            nameStand.teleport(base.clone().add(0,-0.32*(rank*2+1),0));
+            nameStand.setCustomName(ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name);
+            scoreStand.teleport(base.clone().add(0,-0.32*(rank*2+2),0));
+            scoreStand.setCustomName(ChatColor.GRAY+"Значение: "+ChatColor.WHITE+leaderboardScore(uuid,type,kills));
+        }
+        List<UUID> ids=new ArrayList<>();for(ArmorStand stand:stands)ids.add(stand.getUniqueId());leaderboardEntities.put(id,ids);
     }
     private int leaderboardScore(UUID id,String type,boolean kills){return type.equals("diamonds")?getEmeralds(id):kills?getPlayerKills(id):getWins(id);}
     public int getRating(UUID id){return rating(id);}
