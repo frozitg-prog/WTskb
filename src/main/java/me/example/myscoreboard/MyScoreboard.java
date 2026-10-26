@@ -45,10 +45,14 @@ public final class MyScoreboard extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(this, this);
-        getCommand("don").setExecutor((sender, command, label, args) -> {
-            sender.sendMessage(MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTime</bold></gradient> <gray>» <white>Купить донат можно у <light_purple>@WoonTimebot<white>."));
-            return true;
-        });
+        if (getCommand("don") != null) {
+            getCommand("don").setExecutor((sender, command, label, args) -> {
+                sender.sendMessage(MINI_MESSAGE.deserialize("<gradient:#ff69b4:#ff1493><bold>WoonTime</bold></gradient> <gray>» <white>Купить донат можно у <light_purple>@WoonTimebot<white>."));
+                return true;
+            });
+        } else {
+            getLogger().severe("Command 'don' is missing from plugin.yml");
+        }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             createBoard(player);
