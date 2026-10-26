@@ -79,14 +79,58 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
 
     private void setupPlayerTags() {
         Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-        Objective health = board.getObjective(HEALTH_OBJECTIVE);
-        if (health == null) {
-            try { health = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH, ChatColor.RED + "❤"); }
-            catch (IllegalArgumentException ignored) { health = board.getObjective(HEALTH_OBJECTIVE); }
+        Objective oldHealth = board.getObjective(HEALTH_OBJECTIVE);
+        if (oldHealth != null) oldHealth.unregister();
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : new ArrayList<>(world.getEntities())) {
+                if (entity instanceof ArmorStand stand && stand.getScoreboardTags().contains("woontime_player_health")) stand.remove();
+            }
         }
-        // Display current health below each player name with the vanilla health objective.
-        if (health != null) health.setDisplaySlot(DisplaySlot.BELOW_NAME);
         for (Player player : Bukkit.getOnlinePlayers()) updatePlayerTag(player);
+    }
+
+    private void refreshPlayerHealthDisplays() {
+        Set<UUID> onlineIds = new HashSet<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            onlineIds.add(player.getUniqueId());
+            String tag = "woontime_player_health_" + player.getUniqueId().toString().replace("-", "");
+            List<ArmorStand> found = new ArrayList<>();
+            for (Entity entity : player.getWorld().getEntities()) {
+                if (entity instanceof ArmorStand stand && stand.getScoreboardTags().contains(tag)) found.add(stand);
+            }
+            ArmorStand display = found.isEmpty() ? null : found.get(0);
+            for (int i = 1; i < found.size(); i++) found.get(i).remove();
+            if (display == null) {
+                display = player.getWorld().spawn(player.getLocation().add(0, 2.35, 0), ArmorStand.class, stand -> {
+                    stand.setInvisible(true);
+                    stand.setMarker(true);
+                    stand.setGravity(false);
+                    stand.setSmall(true);
+                    stand.setCustomNameVisible(true);
+                    stand.setPersistent(true);
+                    stand.addScoreboardTag("woontime_player_health");
+                    stand.addScoreboardTag(tag);
+                });
+            }
+            display.teleport(player.getLocation().add(0, 2.35, 0));
+            double hp = Math.max(0.0, player.getHealth());
+            String amount = (hp == Math.floor(hp)) ? String.valueOf((int) hp) : String.format(Locale.US, "%.1f", hp);
+            display.setCustomName(ChatColor.RED + "❤ " + ChatColor.WHITE + amount);
+        }
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : new ArrayList<>(world.getEntities())) {
+                if (!(entity instanceof ArmorStand stand)) continue;
+                for (String tag : new HashSet<>(stand.getScoreboardTags())) {
+                    if (tag.startsWith("woontime_player_health_")) {
+                        String raw = tag.substring("woontime_player_health_".length());
+                        boolean exists = false;
+                        for (UUID id : onlineIds) if (id.toString().replace("-", "").equals(raw)) { exists = true; break; }
+                        if (!exists) stand.remove();
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private void updatePlayerTag(Player player) {
@@ -122,7 +166,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         data = YamlConfiguration.loadConfiguration(dataFile);
         migrateLegacyLeaderboards();
         setupPlayerTags();
-        new BukkitRunnable(){ public void run(){ for(Player player:Bukkit.getOnlinePlayers()) updatePlayerTag(player); } }.runTaskTimer(this,20L,20L);
+        new BukkitRunnable(){ public void run(){ for(Player player:Bukkit.getOnlinePlayers()) updatePlayerTag(player); refreshPlayerHealthDisplays(); } }.runTaskTimer(this,20L,20L);
         refreshLeaderboards();
         new BukkitRunnable(){ public void run(){ refreshLeaderboards(); } }.runTaskTimer(this,1200L,1200L);
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -636,7 +680,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             nameStand.teleport(base.clone().add(0,-0.32*(rank*2+1),0));
             nameStand.setCustomName(ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name);
             scoreStand.teleport(base.clone().add(0,-0.32*(rank*2+2),0));
-            scoreStand.setCustomName(ChatColor.GRAY+"Значение: "+ChatColor.WHITE+leaderboardScore(uuid,type,kills));
+            scoreStand.setCustomName(ChatColor.GOLD + String.valueOf(leaderboardScore(uuid,type,kills)));
         }
         List<UUID> ids=new ArrayList<>();for(ArmorStand stand:stands)ids.add(stand.getUniqueId());leaderboardEntities.put(id,ids);
     }
