@@ -122,14 +122,23 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         return section == null ? List.of("default") : new ArrayList<>(section.getKeys(false));
     }
     private static final String MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Дуэли";
-    private static final String EDITOR_TITLE = ChatColor.LIGHT_PURPLE + "Редактор кита: ";
+    private static final String EDITOR_TITLE = "Закройте инвентарь чтобы сохранить";
     private static final String MAIN_MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Меню";
     private static final String STATS_MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Статистика";
     private ItemStack namedItem(Material material,String name,List<String> lore){ItemStack i=new ItemStack(material);ItemMeta m=i.getItemMeta();m.setDisplayName(ChatColor.LIGHT_PURPLE+name);if(lore!=null)m.setLore(lore);i.setItemMeta(m);return i;}
     private void fillPinkBorder(Inventory inv){ItemStack pane=namedItem(Material.PINK_STAINED_GLASS_PANE,"woontime.su",List.of(ChatColor.GRAY+"WoonTime.su"));for(int i=0;i<inv.getSize();i++)if(i<9||i>=inv.getSize()-9||i%9==0||i%9==8)inv.setItem(i,pane);}
     private void openMainMenu(Player p){Inventory inv=Bukkit.createInventory(null,45,MAIN_MENU_TITLE);fillPinkBorder(inv);inv.setItem(20,namedItem(Material.IRON_SWORD,"Найти дуэль",List.of(ChatColor.GRAY+"Открыть список наборов")));inv.setItem(22,namedItem(Material.BOOK,"Статистика",List.of(ChatColor.GRAY+"Твои достижения")));inv.setItem(24,namedItem(Material.NETHERITE_SCRAP,"Скин на трапку",List.of(ChatColor.GRAY+"В разработке")));p.openInventory(inv);}
     private void openStats(Player p){UUID id=p.getUniqueId();Inventory inv=Bukkit.createInventory(null,45,STATS_MENU_TITLE);fillPinkBorder(inv);int k=p.getStatistic(Statistic.PLAYER_KILLS),d=p.getStatistic(Statistic.DEATHS);double kd=d==0?k:(double)k/d;long h=p.getStatistic(Statistic.PLAY_ONE_MINUTE)/20L/3600L;inv.setItem(10,namedItem(Material.IRON_SWORD,"Всего убийств: "+k,null));inv.setItem(12,namedItem(Material.TOTEM_OF_UNDYING,"Всего побед: "+stat(id,"wins"),null));inv.setItem(14,namedItem(Material.SKELETON_SKULL,"Всего смертей: "+d,null));inv.setItem(16,namedItem(Material.DIAMOND_SWORD,String.format(Locale.US,"КД: %.2f",kd),null));inv.setItem(20,namedItem(Material.CLOCK,"Наиграно: "+h+" ч.",null));inv.setItem(22,namedItem(Material.NETHERITE_SWORD,"Сыграно дуэлей: "+stat(id,"played"),null));inv.setItem(24,namedItem(Material.NETHERITE_INGOT,"Лучший рейтинг: "+bestRating(id),null));inv.setItem(31,namedItem(Material.PAPER,"Текущий рейтинг: "+rating(id),null));p.openInventory(inv);}
-    @EventHandler public void onEditorDrag(InventoryDragEvent e){if(!e.getView().getTitle().startsWith(EDITOR_TITLE))return;for(int raw:e.getRawSlots())if(raw>=50&&raw<54){e.setCancelled(true);return;}}
+    @EventHandler public void onEditorDrag(InventoryDragEvent e){
+        if(!e.getView().getTitle().equals(EDITOR_TITLE))return;
+        for(int raw:e.getRawSlots())if(!isKitEditableSlot(raw)){e.setCancelled(true);return;}
+    }
+    private boolean isKitEditableSlot(int raw){return (raw>=0&&raw<=35)||(raw>=45&&raw<=48)||raw==50;}
+    private ItemStack editorPane(){return namedItem(Material.BLUE_STAINED_GLASS_PANE,ChatColor.BLUE+"woontime.su",null);}
+    private void fillEditorDecorations(Inventory inv){
+        ItemStack pane=editorPane();for(int slot=36;slot<=44;slot++)inv.setItem(slot,pane.clone());inv.setItem(49,pane.clone());inv.setItem(52,pane.clone());inv.setItem(53,pane.clone());
+        inv.setItem(51,namedItem(Material.ARROW,ChatColor.YELLOW+"Вернуться к выбору китов",List.of(ChatColor.GRAY+"Закрыть редактор и сохранить изменения")));
+    }
     @EventHandler public void onFoodLevelChange(FoodLevelChangeEvent e){if(e.getEntity() instanceof Player)e.setCancelled(true);}
     @EventHandler public void onJoin(PlayerJoinEvent e){ giveSelector(e.getPlayer()); }
     private void giveSelector(Player p){
@@ -201,7 +210,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(title.startsWith(PREVIEW_TITLE)){e.setCancelled(true);if(e.getRawSlot()==52){List<String> layout=pendingKitLayouts.remove(p.getUniqueId());String kit=editingKits.remove(p.getUniqueId());if(layout!=null&&kit!=null){personalKits.set(p.getUniqueId()+"."+kit+".layout",layout);try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}msg(p,"Изменения кита "+kit+" сохранены.");}p.closeInventory();return;}if(e.getRawSlot()==53){pendingKitLayouts.remove(p.getUniqueId());editingKits.remove(p.getUniqueId());msg(p,"Сохранение кита отменено.");p.closeInventory();return;}return;}
         if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta())return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.equalsIgnoreCase("Найти дуэль"))openKits(p);else if(n.equalsIgnoreCase("Статистика"))openStats(p);else if(n.equalsIgnoreCase("Скин на трапку"))msg(p,"Эта функция пока в разработке.");return;}
         if(title.equals(STATS_MENU_TITLE)){e.setCancelled(true);return;}
-        if(title.startsWith(EDITOR_TITLE)){if(e.getRawSlot()>=50&&e.getRawSlot()<54){e.setCancelled(true);return;}ItemStack it=e.getCurrentItem();if(it!=null&&it.getType()==Material.PINK_STAINED_GLASS_PANE){e.setCancelled(true);return;}if(e.getClick().isShiftClick()){e.setCancelled(true);return;}return;}
+        if(title.equals(EDITOR_TITLE)){int raw=e.getRawSlot();if(raw==51){e.setCancelled(true);p.closeInventory();return;}if(!isKitEditableSlot(raw)||e.getClickedInventory()!=e.getView().getTopInventory()||e.getClick().isShiftClick()||e.getClick().isKeyboardClick()||e.getClick()==ClickType.DOUBLE_CLICK||e.getClick()==ClickType.DROP||e.getClick()==ClickType.CONTROL_DROP){e.setCancelled(true);return;}return;}
     }
     private void openKitEditor(Player p,String kit) {
         UUID id=p.getUniqueId();
@@ -209,19 +218,19 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         editorSavedArmor.put(id,p.getInventory().getArmorContents().clone());
         editorSavedOffhand.put(id,p.getInventory().getItemInOffHand().clone());
         editingKits.put(id,kit);
-        Inventory edit=Bukkit.createInventory(null,54,EDITOR_TITLE+kit);
+        Inventory edit=Bukkit.createInventory(null,54,EDITOR_TITLE);
         List<String> saved=personalKits.getStringList(id+"."+kit+".layout");
         if(!saved.isEmpty()) {
-            for(String raw:saved){int sep=raw.indexOf('@');if(sep>0){int slot=parseInt(raw.substring(0,sep),-1);ItemStack it=deserializeItem(raw.substring(sep+1));if(slot>=0&&slot<54&&it!=null)edit.setItem(slot,it);}else{String[] parts=raw.split(":",3);if(parts.length>=3){int slot=parseInt(parts[0],-1);Material mat=Material.matchMaterial(parts[1]);if(slot>=0&&slot<54&&mat!=null)edit.setItem(slot,new ItemStack(mat,Math.max(1,parseInt(parts[2],1))));}}}
+            for(String raw:saved){int sep=raw.indexOf('@');if(sep>0){int slot=parseInt(raw.substring(0,sep),-1);ItemStack it=deserializeItem(raw.substring(sep+1));if(slot>=0&&isKitEditableSlot(slot)&&it!=null)edit.setItem(slot,normalizeEditorSlot(slot,it));}else{String[] parts=raw.split(":",3);if(parts.length>=3){int slot=parseInt(parts[0],-1);Material mat=Material.matchMaterial(parts[1]);if(slot>=0&&isKitEditableSlot(slot)&&mat!=null)edit.setItem(slot,normalizeEditorSlot(slot,new ItemStack(mat,Math.max(1,parseInt(parts[2],1)))));}}}
         } else {
-            for(ItemStack item:defaultKitItems(kit)){String n=item.getType().name();if(n.endsWith("_HELMET"))edit.setItem(48,item.clone());else if(n.endsWith("_CHESTPLATE"))edit.setItem(47,item.clone());else if(n.endsWith("_LEGGINGS"))edit.setItem(46,item.clone());else if(n.endsWith("_BOOTS"))edit.setItem(45,item.clone());else {int slot=edit.firstEmpty();if(slot>=0&&slot<36)edit.setItem(slot,item.clone());}}
+            for(ItemStack item:defaultKitItems(kit)){String n=item.getType().name();if(n.endsWith("_HELMET"))edit.setItem(45,item.clone());else if(n.endsWith("_CHESTPLATE"))edit.setItem(46,item.clone());else if(n.endsWith("_LEGGINGS"))edit.setItem(47,item.clone());else if(n.endsWith("_BOOTS"))edit.setItem(48,item.clone());else {int slot=firstFreeKitSlot(edit);if(slot>=0)edit.setItem(slot,item.clone());}}
         }
-        ItemStack pane=new ItemStack(Material.PINK_STAINED_GLASS_PANE);
-        ItemMeta meta=pane.getItemMeta();meta.setDisplayName(ChatColor.LIGHT_PURPLE+"woontime.su");pane.setItemMeta(meta);
-        for(int slot=50;slot<54;slot++)edit.setItem(slot,pane);
-        p.sendMessage(ChatColor.LIGHT_PURPLE+"Редактор: слоты 45–48 — броня, 49 — вторая рука. Закрой меню для сохранения.");
+        fillEditorDecorations(edit);
+        p.sendMessage(ChatColor.LIGHT_PURPLE+"Редактор кита: перемещай только предметы набора. Закрой инвентарь для сохранения.");
         p.openInventory(edit);
     }
+    private int firstFreeKitSlot(Inventory inv){for(int slot=0;slot<36;slot++)if(inv.getItem(slot)==null||inv.getItem(slot).getType().isAir())return slot;return -1;}
+    private ItemStack normalizeEditorSlot(int slot,ItemStack item){if(slot>=45&&slot<=48){String n=item.getType().name();int expected=slot-45;if((expected==0&&!n.endsWith("_HELMET"))||(expected==1&&!n.endsWith("_CHESTPLATE"))||(expected==2&&!n.endsWith("_LEGGINGS"))||(expected==3&&!n.endsWith("_BOOTS")))return null;}return item.clone();}
     private List<ItemStack> defaultKitItems(String kit) {
         List<ItemStack> result=new ArrayList<>();
         for(Object value:getConfig().getList("kits."+kit+".items",List.of())){if(value instanceof ItemStack item){result.add(item.clone());continue;}if(value instanceof String raw){String[] parts=raw.split(":");Material m=Material.matchMaterial(parts[0]);if(m!=null){int amount=parts.length>1?parseInt(parts[1],1):1;result.add(new ItemStack(m,Math.max(1,Math.min(m.getMaxStackSize(),amount))));}}}
@@ -240,14 +249,14 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(!(e.getPlayer() instanceof Player p) || !e.getView().getTitle().startsWith(EDITOR_TITLE))return;
         UUID id=p.getUniqueId();String kit=editingKits.remove(id);if(kit==null)return;
         List<String> layout=new ArrayList<>();
-        for(int slot=0;slot<54;slot++){ItemStack it=e.getInventory().getItem(slot);if(it!=null&&!it.getType().isAir()&&it.getType()!=Material.PINK_STAINED_GLASS_PANE){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}
+        Inventory inv=e.getInventory();for(int slot=0;slot<=35;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}for(int slot=45;slot<=48;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}ItemStack offhand=inv.getItem(50);if(offhand!=null&&!offhand.getType().isAir()){String encoded=serializeItem(offhand);if(!encoded.isEmpty())layout.add("50@"+encoded);}
         pendingKitLayouts.put(id,layout);
         p.getInventory().clear();
         ItemStack[] contents=editorSavedItems.remove(id);if(contents!=null)p.getInventory().setContents(contents);
         ItemStack[] armor=editorSavedArmor.remove(id);if(armor!=null)p.getInventory().setArmorContents(armor);
         ItemStack offhand=editorSavedOffhand.remove(id);if(offhand!=null)p.getInventory().setItemInOffHand(offhand);
         Inventory preview=Bukkit.createInventory(null,54,PREVIEW_TITLE+" • "+kit);
-        for(String raw:layout){int sep=raw.indexOf('@');if(sep>0){int slot=parseInt(raw.substring(0,sep),-1);ItemStack item=deserializeItem(raw.substring(sep+1));if(slot>=0&&slot<50&&item!=null)preview.setItem(slot,item);}}
+        for(String raw:layout){int sep=raw.indexOf('@');if(sep>0){int slot=parseInt(raw.substring(0,sep),-1);ItemStack item=deserializeItem(raw.substring(sep+1));if(slot>=0&&isKitEditableSlot(slot)&&item!=null)preview.setItem(slot,item);}}
         preview.setItem(52,namedItem(Material.LIME_CONCRETE,"Сохранить изменения",List.of(ChatColor.GRAY+"Подтвердить и сохранить кит")));
         preview.setItem(53,namedItem(Material.RED_CONCRETE,"Отменить",List.of(ChatColor.GRAY+"Не сохранять изменения")));
         p.openInventory(preview);
