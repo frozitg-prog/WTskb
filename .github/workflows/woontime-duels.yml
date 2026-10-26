@@ -1,4 +1,5 @@
 name: Build WoonTimeDuels
+# Rebuild the current WoonTimeDuels source with Java 21.
 on:
   push:
     paths:
