@@ -380,7 +380,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             exit.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,new net.md_5.bungee.api.chat.hover.content.Text("Вернуться на спавн сейчас")));
             loser.spigot().sendMessage(exit);
             UUID loserId=otherId;pendingReturn.add(loserId);
-            Bukkit.getScheduler().runTaskLater(this,()->{Player online=Bukkit.getPlayer(loserId);pendingReturn.remove(loserId);if(online!=null){restoreAtSpawn(online);online.setGameMode(GameMode.SURVIVAL);}},100L);
+            Bukkit.getScheduler().runTaskLater(this,()->{boolean shouldReturn=pendingReturn.remove(loserId);Player online=Bukkit.getPlayer(loserId);if(shouldReturn&&online!=null){restoreAtSpawn(online);online.setGameMode(GameMode.SURVIVAL);}},100L);
         } else if(loser!=null) restoreAtSpawn(loser);
         restoreAtSpawn(winner);
         msg(winner,reason); if(loser!=null)msg(loser,reason);
