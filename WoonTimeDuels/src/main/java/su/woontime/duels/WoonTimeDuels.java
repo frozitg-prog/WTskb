@@ -10,6 +10,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -251,7 +252,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(!(e.getPlayer() instanceof Player p) || !e.getView().getTitle().startsWith(EDITOR_TITLE))return;
         UUID id=p.getUniqueId();String kit=editingKits.remove(id);if(kit==null)return;
         List<String> layout=new ArrayList<>();
-        Inventory inv=e.getInventory();for(int slot=0;slot<=35;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}for(int slot=45;slot<=48;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}ItemStack offhand=inv.getItem(50);if(offhand!=null&&!offhand.getType().isAir()){String encoded=serializeItem(offhand);if(!encoded.isEmpty())layout.add("50@"+encoded);}
+        Inventory inv=e.getInventory();for(int slot=0;slot<=35;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}for(int slot=45;slot<=48;slot++){ItemStack it=inv.getItem(slot);if(it!=null&&!it.getType().isAir()){String encoded=serializeItem(it);if(!encoded.isEmpty())layout.add(slot+"@"+encoded);}}ItemStack kitOffhand=inv.getItem(50);if(kitOffhand!=null&&!kitOffhand.getType().isAir()){String encoded=serializeItem(kitOffhand);if(!encoded.isEmpty())layout.add("50@"+encoded);}
         pendingKitLayouts.put(id,layout);
         p.getInventory().clear();
         ItemStack[] contents=editorSavedItems.remove(id);if(contents!=null)p.getInventory().setContents(contents);
