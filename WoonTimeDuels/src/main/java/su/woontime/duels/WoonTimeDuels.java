@@ -465,7 +465,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
                 msg(s,"Голограмма "+id+" удалена.");return true;
             }
             String type=a[1].toLowerCase(Locale.ROOT);
-            if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Использование: /dueladmin hologram <kills|wins> | hologram remove <ID> | hologram removeall");return true;}
+            if(!type.equals("kills")&&!type.equals("wins")&&!type.equals("diamonds")){msg(s,"Использование: /dueladmin hologram <kills|wins|diamonds> | hologram remove <ID> | hologram removeall");return true;}
             if(!(s instanceof Player p)){msg(s,"Создавать голограммы можно только в игре.");return true;}
             ConfigurationSection holograms=getConfig().getConfigurationSection("leaderboards.instances");
             Set<String> ids=holograms==null?new HashSet<>():new HashSet<>(holograms.getKeys(false));
@@ -473,7 +473,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             String id="holo"+number;Location l=p.getLocation();String path="leaderboards.instances."+id;
             getConfig().set(path+".type",type);getConfig().set(path+".world",l.getWorld().getName());
             getConfig().set(path+".x",l.getX());getConfig().set(path+".y",l.getY());getConfig().set(path+".z",l.getZ());
-            saveConfig();refreshLeaderboard(id,type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":"ПОБЕД В ДУЭЛЯХ",type.equals("kills"));
+            saveConfig();refreshLeaderboard(id,type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":type.equals("wins")?"ПОБЕД В ДУЭЛЯХ":"БАЛАНС АЛМАЗОВ",type.equals("kills"));
             msg(s,"Голограмма создана. ID: "+id+" — удалить: /dueladmin hologram remove "+id);return true;
         }
         if(a.length>=3 && a[0].equalsIgnoreCase("rating")){Player p=Bukkit.getPlayerExact(a[1]);if(p==null){msg(s,"Игрок должен быть онлайн.");return true;}ratings.put(p.getUniqueId(),Math.max(0,parseInt(a[2],1000)));msg(s,"Рейтинг установлен: "+ratings.get(p.getUniqueId()));saveData();return true;}
@@ -512,8 +512,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         ConfigurationSection section=getConfig().getConfigurationSection("leaderboards.instances");
         if(section==null)return;
         for(String id:section.getKeys(false)){
-            String type=section.getString(id+".type","kills");if(!type.equals("kills")&&!type.equals("wins"))continue;
-            refreshLeaderboard(id,type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":"ПОБЕД В ДУЭЛЯХ",type.equals("kills"));
+            String type=section.getString(id+".type","kills");if(!type.equals("kills")&&!type.equals("wins")&&!type.equals("diamonds"))continue;
+            refreshLeaderboard(id,type,type.equals("kills")?"УБИЙСТВ ИГРОКОВ":type.equals("wins")?"ПОБЕД В ДУЭЛЯХ":"БАЛАНС АЛМАЗОВ",type.equals("kills"));
         }
     }
     private void removeHologramEntities(String id){
@@ -527,12 +527,13 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         List<UUID> known=new ArrayList<>();for(OfflinePlayer offline:Bukkit.getOfflinePlayers())if(offline.hasPlayedBefore()||offline.isOnline())known.add(offline.getUniqueId());
         for(String key:data.getKeys(false)){try{UUID uuid=UUID.fromString(key);if(!known.contains(uuid))known.add(uuid);}catch(IllegalArgumentException ignored){}}
         for(Player online:Bukkit.getOnlinePlayers())if(!known.contains(online.getUniqueId()))known.add(online.getUniqueId());
-        known.sort((u,v)->Integer.compare(kills?getPlayerKills(v):getWins(v),kills?getPlayerKills(u):getWins(u)));
+        known.sort((u,v)->Integer.compare(leaderboardScore(v,type,kills),leaderboardScore(u,type,kills)));
         List<UUID> spawned=new ArrayList<>();
         ArmorStand head=base.getWorld().spawn(base.clone().add(0,0.25,0),ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(ChatColor.LIGHT_PURPLE+"✦ ТОП-10 "+title+" ✦");as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(head.getUniqueId());
-        int rank=0;for(UUID uuid:known){if(rank>=10)break;OfflinePlayer op=Bukkit.getOfflinePlayer(uuid);String name=op.getName();if(name==null)name=uuid.toString().substring(0,8);int score=kills?getPlayerKills(uuid):getWins(uuid);Location line=base.clone().add(0,-0.28*(rank+1),0);String text=ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name+ChatColor.GRAY+" — "+ChatColor.WHITE+score;ArmorStand stand=base.getWorld().spawn(line,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(text);as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(stand.getUniqueId());rank++;}
+        int rank=0;for(UUID uuid:known){if(rank>=10)break;OfflinePlayer op=Bukkit.getOfflinePlayer(uuid);String name=op.getName();if(name==null)name=uuid.toString().substring(0,8);int score=leaderboardScore(uuid,type,kills);Location line=base.clone().add(0,-0.28*(rank+1),0);String text=ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name+ChatColor.GRAY+" — "+ChatColor.WHITE+score;ArmorStand stand=base.getWorld().spawn(line,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setCustomName(text);as.setPersistent(true);as.addScoreboardTag("woontime_hologram_"+id);});spawned.add(stand.getUniqueId());rank++;}
         leaderboardEntities.put(id,spawned);
     }
+    private int leaderboardScore(UUID id,String type,boolean kills){return type.equals("diamonds")?getEmeralds(id):kills?getPlayerKills(id):getWins(id);}
     public int getRating(UUID id){return rating(id);}
     public int getEmeralds(UUID id){return emeralds(id);}
     public int getWins(UUID id){return stat(id,"wins");}
