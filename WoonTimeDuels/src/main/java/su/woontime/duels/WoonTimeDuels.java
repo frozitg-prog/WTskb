@@ -634,7 +634,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         List<ArmorStand> stands=new ArrayList<>();
         for(Entity entity:base.getWorld().getEntities())if(entity instanceof ArmorStand stand&&stand.getScoreboardTags().contains(tag))stands.add(stand);
         stands.sort(Comparator.comparingDouble(st->-st.getLocation().getY()));
-        int wanted=1+Math.min(10,known.size())*2;
+        int wanted=1+Math.min(10,known.size());
         while(stands.size()>wanted)stands.remove(stands.size()-1).remove();
         while(stands.size()<wanted){
             ArmorStand stand=base.getWorld().spawn(base,ArmorStand.class,as->{as.setInvisible(true);as.setMarker(true);as.setGravity(false);as.setCustomNameVisible(true);as.setPersistent(true);as.addScoreboardTag(tag);});
@@ -644,11 +644,9 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         stands.get(0).setCustomName(ChatColor.LIGHT_PURPLE+"✦ ТОП-10 "+title+" ✦");
         for(int rank=0;rank<Math.min(10,known.size());rank++){
             UUID uuid=known.get(rank);OfflinePlayer op=Bukkit.getOfflinePlayer(uuid);String name=op.getName();if(name==null)name=uuid.toString().substring(0,8);
-            ArmorStand nameStand=stands.get(1+rank*2),scoreStand=stands.get(2+rank*2);
-            nameStand.teleport(base.clone().add(0,-0.32*(rank*2+1),0));
-            nameStand.setCustomName(ChatColor.WHITE+"#"+(rank+1)+" "+ChatColor.LIGHT_PURPLE+name);
-            scoreStand.teleport(base.clone().add(0,-0.32*(rank*2+2),0));
-            scoreStand.setCustomName(ChatColor.GOLD + String.valueOf(leaderboardScore(uuid,type,kills)));
+            ArmorStand entryStand=stands.get(1+rank);
+            entryStand.teleport(base.clone().add(0,-0.32*(rank+1),0));
+            entryStand.setCustomName(ChatColor.WHITE+"#"+(rank+1)+" "+name+" - "+leaderboardScore(uuid,type,kills));
         }
         List<UUID> ids=new ArrayList<>();for(ArmorStand stand:stands)ids.add(stand.getUniqueId());leaderboardEntities.put(id,ids);
     }
