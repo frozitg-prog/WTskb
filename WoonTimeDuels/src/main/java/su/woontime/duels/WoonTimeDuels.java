@@ -210,7 +210,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(title.startsWith(PREVIEW_TITLE)){e.setCancelled(true);if(e.getRawSlot()==52){List<String> layout=pendingKitLayouts.remove(p.getUniqueId());String kit=editingKits.remove(p.getUniqueId());if(layout!=null&&kit!=null){personalKits.set(p.getUniqueId()+"."+kit+".layout",layout);try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}msg(p,"Изменения кита "+kit+" сохранены.");}p.closeInventory();return;}if(e.getRawSlot()==53){pendingKitLayouts.remove(p.getUniqueId());editingKits.remove(p.getUniqueId());msg(p,"Сохранение кита отменено.");p.closeInventory();return;}return;}
         if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta())return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.equalsIgnoreCase("Найти дуэль"))openKits(p);else if(n.equalsIgnoreCase("Статистика"))openStats(p);else if(n.equalsIgnoreCase("Скин на трапку"))msg(p,"Эта функция пока в разработке.");return;}
         if(title.equals(STATS_MENU_TITLE)){e.setCancelled(true);return;}
-        if(title.equals(EDITOR_TITLE)){int raw=e.getRawSlot();if(raw==51){e.setCancelled(true);p.closeInventory();return;}if(!isKitEditableSlot(raw)||e.getClickedInventory()!=e.getView().getTopInventory()||e.getClick().isShiftClick()||e.getClick().isKeyboardClick()||e.getClick()==ClickType.DOUBLE_CLICK||e.getClick()==ClickType.DROP||e.getClick()==ClickType.CONTROL_DROP){e.setCancelled(true);return;}return;}
+        if(title.equals(EDITOR_TITLE)){int raw=e.getRawSlot();if(raw==51){e.setCancelled(true);p.closeInventory();return;}if(!isKitEditableSlot(raw)||e.getClickedInventory()!=e.getView().getTopInventory()||e.getClick().isShiftClick()||e.getClick().isKeyboardClick()||e.getClick()==ClickType.DOUBLE_CLICK||e.getClick()==ClickType.DROP||e.getClick()==ClickType.CONTROL_DROP){e.setCancelled(true);return;}if(raw>=45&&raw<=48){ItemStack cursor=e.getCursor();if(cursor!=null&&!cursor.getType().isAir()&&!isArmorForSlot(raw,cursor)){e.setCancelled(true);return;}}return;}
     }
     private void openKitEditor(Player p,String kit) {
         UUID id=p.getUniqueId();
@@ -230,6 +230,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         p.openInventory(edit);
     }
     private int firstFreeKitSlot(Inventory inv){for(int slot=0;slot<36;slot++)if(inv.getItem(slot)==null||inv.getItem(slot).getType().isAir())return slot;return -1;}
+    private boolean isArmorForSlot(int slot,ItemStack item){String n=item.getType().name();return switch(slot){case 45->n.endsWith("_HELMET")||item.getType()==Material.TURTLE_HELMET;case 46->n.endsWith("_CHESTPLATE");case 47->n.endsWith("_LEGGINGS");case 48->n.endsWith("_BOOTS");default->false;};}
     private ItemStack normalizeEditorSlot(int slot,ItemStack item){if(slot>=45&&slot<=48){String n=item.getType().name();int expected=slot-45;if((expected==0&&!n.endsWith("_HELMET"))||(expected==1&&!n.endsWith("_CHESTPLATE"))||(expected==2&&!n.endsWith("_LEGGINGS"))||(expected==3&&!n.endsWith("_BOOTS")))return null;}return item.clone();}
     private List<ItemStack> defaultKitItems(String kit) {
         List<ItemStack> result=new ArrayList<>();
