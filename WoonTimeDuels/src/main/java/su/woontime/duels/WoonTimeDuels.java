@@ -432,6 +432,30 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private boolean admin(CommandSender s,String[] a) {
         if(!s.hasPermission("woontime.duels.admin")){msg(s,"Недостаточно прав.");return true;}
         if(a.length>=2 && a[0].equalsIgnoreCase("hologram")){
+            if(a[1].equalsIgnoreCase("removeall")){
+                ConfigurationSection holograms=getConfig().getConfigurationSection("leaderboards.instances");
+                Set<String> ids=holograms==null?new HashSet<>():new HashSet<>(holograms.getKeys(false));
+                for(String id:ids)removeHologramEntities(id);
+                // Also clean up legacy, untagged WoonTime leaderboard stands from older plugin versions.
+                // Restrict removal to configured leaderboard locations and recognizable leaderboard name patterns.
+                int legacyRemoved=0;
+                for(String id:ids){
+                    Location base=loc("leaderboards.instances."+id);
+                    if(base==null)continue;
+                    for(Entity entity:new ArrayList<>(base.getWorld().getNearbyEntities(base,1.75,4.0,1.75))){
+                        if(!(entity instanceof ArmorStand stand))continue;
+                        String raw=stand.getCustomName();
+                        if(raw==null)continue;
+                        String plain=ChatColor.stripColor(raw);
+                        if(plain!=null&&(plain.startsWith("✦ ТОП-10 ")||plain.matches("#\\\\d+ .+ — \\d+"))){stand.remove();legacyRemoved++;}
+                    }
+                }
+                getConfig().set("leaderboards.instances",null);
+                getConfig().set("leaderboards.kills",null);
+                getConfig().set("leaderboards.wins",null);
+                saveConfig();
+                msg(s,"Все голограммы лидерборда удалены. Старых голограмм удалено: "+legacyRemoved+".");return true;
+            }
             if(a[1].equalsIgnoreCase("remove")){
                 if(a.length<3){msg(s,"Использование: /dueladmin hologram remove <ID>");return true;}
                 String id=a[2];
@@ -441,7 +465,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
                 msg(s,"Голограмма "+id+" удалена.");return true;
             }
             String type=a[1].toLowerCase(Locale.ROOT);
-            if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Использование: /dueladmin hologram <kills|wins> или /dueladmin hologram remove <ID>");return true;}
+            if(!type.equals("kills")&&!type.equals("wins")){msg(s,"Использование: /dueladmin hologram <kills|wins> | hologram remove <ID> | hologram removeall");return true;}
             if(!(s instanceof Player p)){msg(s,"Создавать голограммы можно только в игре.");return true;}
             ConfigurationSection holograms=getConfig().getConfigurationSection("leaderboards.instances");
             Set<String> ids=holograms==null?new HashSet<>():new HashSet<>(holograms.getKeys(false));
@@ -468,7 +492,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kits: "+ex.getMessage());}
             refreshMenus();msg(s,"Кит '"+actual+"' удалён.");return true;
         }
-        msg(s,"Использование: /dueladmin hologram <kills|wins> | arena setspawn <арена> <1|2> | kit create <имя> | kit delete <имя> | rating <ник> <число> | emeralds <ник> <число>");return true;
+        msg(s,"Использование: /dueladmin hologram <kills|wins> | hologram removeall | arena setspawn <арена> <1|2> | kit create <имя> | kit delete <имя> | rating <ник> <число> | emeralds <ник> <число>");return true;
     }
     private void migrateLegacyLeaderboards(){
         for(String type:List.of("kills","wins")){
