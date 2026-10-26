@@ -488,18 +488,26 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
                 ConfigurationSection holograms=getConfig().getConfigurationSection("leaderboards.instances");
                 Set<String> ids=holograms==null?new HashSet<>():new HashSet<>(holograms.getKeys(false));
                 for(String id:ids)removeHologramEntities(id);
-                // Remove legacy, untagged leaderboard stands around each configured location.
-                // Older versions may have no scoreboard tags and names may differ, so identify
-                // the plugin's invisible marker stands by their entity properties instead.
+                // Also scan every loaded world, because config may already have been deleted
+                // while persistent ArmorStand entities remain saved in the world.
                 int legacyRemoved=0;
-                for(String id:ids){
-                    Location base=loc("leaderboards.instances."+id);
-                    if(base==null)continue;
-                    for(Entity entity:new ArrayList<>(base.getWorld().getNearbyEntities(base,4.0,15.0,4.0))){
+                for(World world:Bukkit.getWorlds()){
+                    for(Entity entity:new ArrayList<>(world.getEntities())){
                         if(!(entity instanceof ArmorStand stand))continue;
-                        if(!stand.isInvisible()||!stand.isMarker()||!stand.isCustomNameVisible())continue;
-                        stand.remove();
-                        legacyRemoved++;
+                        boolean tagged=false;
+                        for(String tag:new HashSet<>(stand.getScoreboardTags())){
+                            if(tag.startsWith("woontime_hologram_")){tagged=true;break;}
+                        }
+                        String raw=stand.getCustomName();
+                        String plain=raw==null?null:ChatColor.stripColor(raw);
+                        boolean recognizable=plain!=null && (
+                            plain.startsWith("✦ ТОП-10 ") ||
+                            plain.matches("#\\\\d+ .+ — \\d+") ||
+                            plain.toLowerCase(Locale.ROOT).contains("топ-10"));
+                        if(tagged || (stand.isInvisible() && stand.isMarker() && stand.isCustomNameVisible() && recognizable)){
+                            stand.remove();
+                            legacyRemoved++;
+                        }
                     }
                 }
                 getConfig().set("leaderboards.instances",null);
