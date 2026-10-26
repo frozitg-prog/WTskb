@@ -69,6 +69,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private final Set<UUID> countdownFrozen = new HashSet<>();
     private final Map<String,List<UUID>> leaderboardEntities = new HashMap<>();
     private final Set<UUID> pendingReturn = new HashSet<>();
+    private final Set<UUID> duelDeathPending = new HashSet<>();
     private final YamlConfiguration personalKits = new YamlConfiguration();
     private File personalKitsFile;
     private File dataFile;
@@ -83,7 +84,8 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             try { health = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH, ChatColor.RED + "❤"); }
             catch (IllegalArgumentException ignored) { health = board.getObjective(HEALTH_OBJECTIVE); }
         }
-        if (health != null) health.setDisplaySlot(DisplaySlot.BELOW_NAME);
+        // Health is displayed by the custom name-line updater, not the vanilla below-name objective.
+        if (health != null) health.setDisplaySlot(null);
         for (Player player : Bukkit.getOnlinePlayers()) updatePlayerTag(player);
     }
 
@@ -197,7 +199,29 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         if(e.getFrom().getX()!=e.getTo().getX()||e.getFrom().getY()!=e.getTo().getY()||e.getFrom().getZ()!=e.getTo().getZ())
             e.setTo(new Location(e.getFrom().getWorld(),e.getFrom().getX(),e.getFrom().getY(),e.getFrom().getZ(),e.getTo().getYaw(),e.getTo().getPitch()));
     }
-    @EventHandler public void onRespawn(PlayerRespawnEvent e){if(opponents.containsKey(e.getPlayer().getUniqueId()))return;World w=Bukkit.getWorld(getConfig().getString("settings.arena-world","world"));if(w!=null)e.setRespawnLocation(w.getSpawnLocation());}
+    @EventHandler public void onRespawn(PlayerRespawnEvent e){
+        Player p=e.getPlayer();
+        if(duelDeathPending.contains(p.getUniqueId())){
+            World w=Bukkit.getWorld(getConfig().getString("settings.arena-world","world"));
+            if(w!=null)e.setRespawnLocation(w.getSpawnLocation());
+            Bukkit.getScheduler().runTask(this,()->{
+                if(!p.isOnline())return;
+                p.setGameMode(GameMode.SPECTATOR);
+                p.setHealth(Math.min(p.getMaxHealth(),20));
+                msg(p,"Ты проиграл. Через 5 секунд вернёшься на спавн.");
+                UUID id=p.getUniqueId(); pendingReturn.add(id);
+                Bukkit.getScheduler().runTaskLater(this,()->{
+                    if(pendingReturn.remove(id)&&p.isOnline()){
+                        restoreAtSpawn(p);p.setGameMode(GameMode.SURVIVAL);
+                    }
+                    duelDeathPending.remove(id);
+                },100L);
+            });
+            return;
+        }
+        if(opponents.containsKey(p.getUniqueId()))return;
+        World w=Bukkit.getWorld(getConfig().getString("settings.arena-world","world"));if(w!=null)e.setRespawnLocation(w.getSpawnLocation());
+    }
 
     private void openKits(Player p) {
         List<String> names = kits();
@@ -423,17 +447,23 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             saveData();
         }
         if(loser!=null && won){
-            loser.setGameMode(GameMode.SPECTATOR);
+            if(!loser.isDead()) loser.setGameMode(GameMode.SPECTATOR);
             msg(loser,"Ты проиграл. Через 5 секунд вернёшься на спавн.");
             net.md_5.bungee.api.chat.TextComponent exit = new net.md_5.bungee.api.chat.TextComponent("[Выйти с дуэли]");
             exit.setColor(net.md_5.bungee.api.ChatColor.GREEN); exit.setBold(true);
             exit.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,"/duel exit"));
             exit.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,new net.md_5.bungee.api.chat.hover.content.Text("Вернуться на спавн сейчас")));
             loser.spigot().sendMessage(exit);
-            UUID loserId=otherId;pendingReturn.add(loserId);
-            Bukkit.getScheduler().runTaskLater(this,()->{boolean shouldReturn=pendingReturn.remove(loserId);Player online=Bukkit.getPlayer(loserId);if(shouldReturn&&online!=null){restoreAtSpawn(online);online.setGameMode(GameMode.SURVIVAL);}},100L);
+            UUID loserId=otherId;
+            if(!loser.isDead()){
+                pendingReturn.add(loserId);
+                Bukkit.getScheduler().runTaskLater(this,()->{boolean shouldReturn=pendingReturn.remove(loserId);Player online=Bukkit.getPlayer(loserId);if(shouldReturn&&online!=null){restoreAtSpawn(online);online.setGameMode(GameMode.SURVIVAL);}},100L);
+            }
         } else if(loser!=null) restoreAtSpawn(loser);
-        restoreAtSpawn(winner);
+        if(winner.isOnline()){
+            UUID winnerId=id;
+            Bukkit.getScheduler().runTaskLater(this,()->{Player online=Bukkit.getPlayer(winnerId);if(online!=null){restoreAtSpawn(online);online.setGameMode(GameMode.SURVIVAL);}},100L);
+        }
         msg(winner,reason); if(loser!=null)msg(loser,reason);
         String arena=playerArena.remove(id); playerArena.remove(otherId); if(arena!=null)busyArenas.remove(arena);
         matchStart.remove(id);matchStart.remove(otherId);matchKit.remove(id);matchKit.remove(otherId);saveData();
@@ -457,6 +487,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     @EventHandler public void onDeath(PlayerDeathEvent e) {
         Player p=e.getEntity(); UUID opp=opponents.get(p.getUniqueId()); if(opp==null){Bukkit.getScheduler().runTask(this,()->{if(p.isOnline()&&p.isDead())p.spigot().respawn();});return;}
         e.getDrops().clear(); e.setDroppedExp(0);
+        duelDeathPending.add(p.getUniqueId());
         Player winner=Bukkit.getPlayer(opp);
         if(winner!=null) endMatch(winner,true,"Дуэль завершена.");
         else { opponents.remove(p.getUniqueId()); restore(p); }
