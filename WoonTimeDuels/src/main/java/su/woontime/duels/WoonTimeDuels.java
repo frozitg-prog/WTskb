@@ -180,10 +180,41 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private static final String EDITOR_TITLE = "Закройте инвентарь чтобы сохранить";
     private static final String MAIN_MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Меню";
     private static final String STATS_MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Статистика";
+    private static final String PLAYER_SELECT_TITLE = ChatColor.LIGHT_PURPLE + "✦ Вызов на дуэль";
     private ItemStack namedItem(Material material,String name,List<String> lore){ItemStack i=new ItemStack(material);ItemMeta m=i.getItemMeta();m.setDisplayName(ChatColor.LIGHT_PURPLE+name);if(lore!=null)m.setLore(lore);i.setItemMeta(m);return i;}
     private void fillPinkBorder(Inventory inv){ItemStack pane=namedItem(Material.PINK_STAINED_GLASS_PANE,"woontime.su",List.of(ChatColor.GRAY+"WoonTime.su"));for(int i=0;i<inv.getSize();i++)if(i<9||i>=inv.getSize()-9||i%9==0||i%9==8)inv.setItem(i,pane);}
-    private void openMainMenu(Player p){Inventory inv=Bukkit.createInventory(null,45,MAIN_MENU_TITLE);fillPinkBorder(inv);inv.setItem(20,namedItem(Material.IRON_SWORD,"Найти дуэль",List.of(ChatColor.GRAY+"Открыть список наборов")));inv.setItem(22,namedItem(Material.BOOK,"Статистика",List.of(ChatColor.GRAY+"Твои достижения")));inv.setItem(24,namedItem(Material.NETHERITE_SCRAP,"Скин на трапку",List.of(ChatColor.GRAY+"В разработке")));p.openInventory(inv);}
-    private void openStats(Player p){UUID id=p.getUniqueId();Inventory inv=Bukkit.createInventory(null,45,STATS_MENU_TITLE);fillPinkBorder(inv);int k=p.getStatistic(Statistic.PLAYER_KILLS),d=p.getStatistic(Statistic.DEATHS);double kd=d==0?k:(double)k/d;long h=p.getStatistic(Statistic.PLAY_ONE_MINUTE)/20L/3600L;inv.setItem(10,namedItem(Material.IRON_SWORD,"Всего убийств: "+k,null));inv.setItem(12,namedItem(Material.TOTEM_OF_UNDYING,"Всего побед: "+stat(id,"wins"),null));inv.setItem(14,namedItem(Material.SKELETON_SKULL,"Всего смертей: "+d,null));inv.setItem(16,namedItem(Material.DIAMOND_SWORD,String.format(Locale.US,"КД: %.2f",kd),null));inv.setItem(20,namedItem(Material.CLOCK,"Наиграно: "+h+" ч.",null));inv.setItem(22,namedItem(Material.NETHERITE_SWORD,"Сыграно дуэлей: "+stat(id,"played"),null));inv.setItem(24,namedItem(Material.NETHERITE_INGOT,"Лучший рейтинг: "+bestRating(id),null));inv.setItem(31,namedItem(Material.PAPER,"Текущий рейтинг: "+rating(id),null));p.openInventory(inv);}
+    private void openMainMenu(Player p){Inventory inv=Bukkit.createInventory(null,45,MAIN_MENU_TITLE);fillPinkBorder(inv);
+        inv.setItem(20,namedItem(Material.IRON_SWORD,"Найти дуэль",List.of(ChatColor.GRAY+"Подбор соперника по набору",ChatColor.LIGHT_PURPLE+"Нажми, чтобы открыть")));
+        inv.setItem(22,namedItem(Material.BOOK,"Статистика",List.of(ChatColor.GRAY+"Рейтинг, победы и достижения",ChatColor.LIGHT_PURPLE+"Нажми, чтобы открыть")));
+        inv.setItem(24,namedItem(Material.PLAYER_HEAD,"Вызвать игрока",List.of(ChatColor.GRAY+"Выбери игрока онлайн",ChatColor.LIGHT_PURPLE+"Нажми, чтобы открыть")));
+        inv.setItem(4,namedItem(Material.NETHER_STAR,"✦ WOONTIME DUELS ✦",List.of(ChatColor.GRAY+"Дуэли • Рейтинг • Победы")));
+        p.openInventory(inv);}
+    private void openPlayerSelect(Player p){
+        Inventory inv=Bukkit.createInventory(null,54,PLAYER_SELECT_TITLE);fillPinkBorder(inv);
+        int slot=10;
+        for(Player target:Bukkit.getOnlinePlayers()){
+            if(target.equals(p)||opponents.containsKey(target.getUniqueId()))continue;
+            if(slot>43)break;
+            if(slot%9==8)slot+=2;
+            ItemStack head=new ItemStack(Material.PLAYER_HEAD);ItemMeta meta=head.getItemMeta();
+            if(meta instanceof org.bukkit.inventory.meta.SkullMeta skull){skull.setOwningPlayer(target);skull.setDisplayName(ChatColor.LIGHT_PURPLE+target.getName());skull.setLore(List.of(ChatColor.GRAY+"Рейтинг: "+rating(target.getUniqueId()),ChatColor.WHITE+"Нажми, чтобы отправить вызов"));head.setItemMeta(skull);}
+            inv.setItem(slot,head);slot++;
+        }
+        inv.setItem(49,namedItem(Material.PAPER,"Вызов на дуэль",List.of(ChatColor.GRAY+"Выбери голову игрока")));
+        p.openInventory(inv);
+    }
+    private void openStats(Player p){UUID id=p.getUniqueId();Inventory inv=Bukkit.createInventory(null,45,STATS_MENU_TITLE);fillPinkBorder(inv);int k=p.getStatistic(Statistic.PLAYER_KILLS),d=p.getStatistic(Statistic.DEATHS);double kd=d==0?k:(double)k/d;long h=p.getStatistic(Statistic.PLAY_ONE_MINUTE)/20L/3600L;
+        inv.setItem(4,namedItem(Material.PLAYER_HEAD,p.getName(),List.of(ChatColor.GRAY+"Твоя статистика на WoonTime")));
+        inv.setItem(10,namedItem(Material.IRON_SWORD,"Убийства: "+k,List.of(ChatColor.GRAY+"Всего убийств игроками")));
+        inv.setItem(12,namedItem(Material.TOTEM_OF_UNDYING,"Победы: "+stat(id,"wins"),List.of(ChatColor.GRAY+"Выигранные дуэли")));
+        inv.setItem(14,namedItem(Material.SKELETON_SKULL,"Смерти: "+d,List.of(ChatColor.GRAY+"Всего смертей")));
+        inv.setItem(16,namedItem(Material.DIAMOND_SWORD,String.format(Locale.US,"К/Д: %.2f",kd),List.of(ChatColor.GRAY+"Соотношение убийств и смертей")));
+        inv.setItem(20,namedItem(Material.CLOCK,"Наиграно: "+h+" ч.",List.of(ChatColor.GRAY+"Общее время в игре")));
+        inv.setItem(22,namedItem(Material.NETHERITE_SWORD,"Дуэлей сыграно: "+stat(id,"played"),List.of(ChatColor.GRAY+"Количество матчей")));
+        inv.setItem(24,namedItem(Material.NETHERITE_INGOT,"Лучший рейтинг: "+bestRating(id),List.of(ChatColor.GRAY+"Максимальный рейтинг")));
+        inv.setItem(31,namedItem(Material.PAPER,"Рейтинг: "+rating(id),List.of(ChatColor.GRAY+"Текущий рейтинг")));
+        inv.setItem(40,namedItem(Material.ARROW,"В главное меню",List.of(ChatColor.GRAY+"Вернуться назад")));
+        p.openInventory(inv);}
     @EventHandler public void onEditorDrag(InventoryDragEvent e){
         if(!e.getView().getTitle().equals(EDITOR_TITLE))return;
         for(int raw:e.getRawSlots())if(!isKitEditableSlot(raw)){e.setCancelled(true);return;}
@@ -285,8 +316,9 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             return;
         }
         if(title.startsWith(PREVIEW_TITLE)){e.setCancelled(true);if(e.getRawSlot()==52){List<String> layout=pendingKitLayouts.remove(p.getUniqueId());String kit=editingKits.remove(p.getUniqueId());if(layout!=null&&kit!=null){personalKits.set(p.getUniqueId()+"."+kit+".layout",layout);try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}msg(p,"Изменения кита "+kit+" сохранены.");}boolean back=returnToKitSelection.remove(p.getUniqueId());p.closeInventory();if(back)Bukkit.getScheduler().runTask(this,()->openKits(p));return;}if(e.getRawSlot()==53){pendingKitLayouts.remove(p.getUniqueId());editingKits.remove(p.getUniqueId());msg(p,"Сохранение кита отменено.");boolean back=returnToKitSelection.remove(p.getUniqueId());p.closeInventory();if(back)Bukkit.getScheduler().runTask(this,()->openKits(p));return;}return;}
-        if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta())return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.equalsIgnoreCase("Найти дуэль"))openKits(p);else if(n.equalsIgnoreCase("Статистика"))openStats(p);else if(n.equalsIgnoreCase("Скин на трапку"))msg(p,"Эта функция пока в разработке.");return;}
-        if(title.equals(STATS_MENU_TITLE)){e.setCancelled(true);return;}
+        if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta()||it.getItemMeta().getDisplayName()==null)return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.equalsIgnoreCase("Найти дуэль"))openKits(p);else if(n.equalsIgnoreCase("Статистика"))openStats(p);else if(n.equalsIgnoreCase("Вызвать игрока"))openPlayerSelect(p);return;}
+        if(title.equals(PLAYER_SELECT_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta()||it.getType()!=Material.PLAYER_HEAD)return;String targetName=ChatColor.stripColor(it.getItemMeta().getDisplayName());Player target=Bukkit.getPlayerExact(targetName);if(target==null||target.equals(p)){msg(p,"Игрок больше недоступен.");openPlayerSelect(p);return;}if(opponents.containsKey(target.getUniqueId())){msg(p,"Игрок уже в дуэли.");openPlayerSelect(p);return;}invitations.put(target.getUniqueId(),p.getUniqueId());p.closeInventory();msg(p,"Вызов отправлен игроку "+target.getName()+".");msg(target,p.getName()+" вызывает тебя на дуэль! Напиши /duel accept или /duel deny.");return;}
+        if(title.equals(STATS_MENU_TITLE)){e.setCancelled(true);if(e.getRawSlot()==40)openMainMenu(p);return;}
         if(title.equals(EDITOR_TITLE)){int raw=e.getRawSlot();if(raw==51){e.setCancelled(true);returnToKitSelection.add(p.getUniqueId());p.closeInventory();return;}if(!isKitEditableSlot(raw)||e.getClickedInventory()!=e.getView().getTopInventory()||e.getClick().isShiftClick()||e.getClick().isKeyboardClick()||e.getClick()==ClickType.DOUBLE_CLICK||e.getClick()==ClickType.DROP||e.getClick()==ClickType.CONTROL_DROP){e.setCancelled(true);return;}if(raw>=45&&raw<=48){ItemStack cursor=e.getCursor();if(cursor!=null&&!cursor.getType().isAir()&&!isArmorForSlot(raw,cursor)){e.setCancelled(true);return;}}return;}
     }
     private void openKitEditor(Player p,String kit) {
