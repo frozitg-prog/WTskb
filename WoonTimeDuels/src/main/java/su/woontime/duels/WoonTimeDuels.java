@@ -176,18 +176,18 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         ConfigurationSection section = getConfig().getConfigurationSection("kits");
         return section == null ? List.of("default") : new ArrayList<>(section.getKeys(false));
     }
-    private static final String MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Дуэли";
+    private static final String MENU_TITLE = ChatColor.BLUE + "✦ ПОИСК ДУЭЛИ ✦";
     private static final String EDITOR_TITLE = "Закройте инвентарь чтобы сохранить";
-    private static final String MAIN_MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Меню";
-    private static final String STATS_MENU_TITLE = ChatColor.LIGHT_PURPLE + "✦ WoonTime • Статистика";
-    private static final String PLAYER_SELECT_TITLE = ChatColor.LIGHT_PURPLE + "✦ Вызов на дуэль";
-    private ItemStack namedItem(Material material,String name,List<String> lore){ItemStack i=new ItemStack(material);ItemMeta m=i.getItemMeta();m.setDisplayName(ChatColor.LIGHT_PURPLE+name);if(lore!=null)m.setLore(lore);i.setItemMeta(m);return i;}
-    private void fillPinkBorder(Inventory inv){ItemStack pane=namedItem(Material.PINK_STAINED_GLASS_PANE,"woontime.su",List.of(ChatColor.GRAY+"WoonTime.su"));for(int i=0;i<inv.getSize();i++)if(i<9||i>=inv.getSize()-9||i%9==0||i%9==8)inv.setItem(i,pane);}
+    private static final String MAIN_MENU_TITLE = ChatColor.BLUE + "✦ WOONTIME • МЕНЮ ✦";
+    private static final String STATS_MENU_TITLE = ChatColor.BLUE + "✦ СТАТИСТИКА ✦";
+    private static final String PLAYER_SELECT_TITLE = ChatColor.BLUE + "✦ ВЫЗОВ НА ДУЭЛЬ ✦";
+    private ItemStack namedItem(Material material,String name,List<String> lore){ItemStack i=new ItemStack(material);ItemMeta m=i.getItemMeta();m.setDisplayName(ChatColor.AQUA+name);if(lore!=null)m.setLore(lore);m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES,ItemFlag.HIDE_ENCHANTS,ItemFlag.HIDE_ADDITIONAL_TOOLTIP);i.setItemMeta(m);return i;}
+    private void fillPinkBorder(Inventory inv){ItemStack pane=namedItem(Material.BLUE_STAINED_GLASS_PANE,ChatColor.AQUA+"✦ WOONTIME ✦",List.of(ChatColor.GRAY+"WoonTime.su",ChatColor.DARK_GRAY+"━━━━━━━━━━━━"));for(int i=0;i<inv.getSize();i++)if(i<9||i>=inv.getSize()-9||i%9==0||i%9==8)inv.setItem(i,pane);}
     private void openMainMenu(Player p){Inventory inv=Bukkit.createInventory(null,45,MAIN_MENU_TITLE);fillPinkBorder(inv);
-        inv.setItem(20,namedItem(Material.IRON_SWORD,"Найти дуэль",List.of(ChatColor.GRAY+"Подбор соперника по набору",ChatColor.LIGHT_PURPLE+"Нажми, чтобы открыть")));
-        inv.setItem(22,namedItem(Material.BOOK,"Статистика",List.of(ChatColor.GRAY+"Рейтинг, победы и достижения",ChatColor.LIGHT_PURPLE+"Нажми, чтобы открыть")));
-        inv.setItem(24,namedItem(Material.PLAYER_HEAD,"Вызвать игрока",List.of(ChatColor.GRAY+"Выбери игрока онлайн",ChatColor.LIGHT_PURPLE+"Нажми, чтобы открыть")));
-        inv.setItem(4,namedItem(Material.NETHER_STAR,"✦ WOONTIME DUELS ✦",List.of(ChatColor.GRAY+"Дуэли • Рейтинг • Победы")));
+        inv.setItem(20,namedItem(Material.DIAMOND_SWORD,"⚔ ПОИСК БОЯ",List.of(ChatColor.GRAY+"Подбор соперника по набору",ChatColor.AQUA+"ЛКМ » выбрать кит")));
+        inv.setItem(22,namedItem(Material.GOLDEN_APPLE,"★ СТАТИСТИКА",List.of(ChatColor.GRAY+"Рейтинг • победы • достижения",ChatColor.AQUA+"ЛКМ » открыть профиль")));
+        inv.setItem(24,namedItem(Material.PLAYER_HEAD,"⚡ ВЫЗВАТЬ ИГРОКА",List.of(ChatColor.GRAY+"Выбери соперника онлайн",ChatColor.AQUA+"ЛКМ » отправить вызов")));
+        inv.setItem(4,namedItem(Material.NETHER_STAR,"✦ WOONTIME DUELS ✦",List.of(ChatColor.DARK_AQUA+"━━━━━━━━━━━━━━━━",ChatColor.GRAY+"DUELS  •  RANKED  •  PVP",ChatColor.AQUA+"Выбери действие ниже")));
         p.openInventory(inv);}
     private void openPlayerSelect(Player p){
         Inventory inv=Bukkit.createInventory(null,54,PLAYER_SELECT_TITLE);fillPinkBorder(inv);
@@ -213,7 +213,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
         inv.setItem(22,namedItem(Material.NETHERITE_SWORD,"Дуэлей сыграно: "+stat(id,"played"),List.of(ChatColor.GRAY+"Количество матчей")));
         inv.setItem(24,namedItem(Material.NETHERITE_INGOT,"Лучший рейтинг: "+bestRating(id),List.of(ChatColor.GRAY+"Максимальный рейтинг")));
         inv.setItem(31,namedItem(Material.PAPER,"Рейтинг: "+rating(id),List.of(ChatColor.GRAY+"Текущий рейтинг")));
-        inv.setItem(40,namedItem(Material.ARROW,"В главное меню",List.of(ChatColor.GRAY+"Вернуться назад")));
+        inv.setItem(40,namedItem(Material.ARROW,"← ГЛАВНОЕ МЕНЮ",List.of(ChatColor.GRAY+"Вернуться назад")));
         p.openInventory(inv);}
     @EventHandler public void onEditorDrag(InventoryDragEvent e){
         if(!e.getView().getTitle().equals(EDITOR_TITLE))return;
@@ -269,25 +269,25 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
     private void openKits(Player p) {
         List<String> names = kits();
         Inventory inv = Bukkit.createInventory(null, 54, MENU_TITLE);
-        ItemStack pane = new ItemStack(Material.PINK_STAINED_GLASS_PANE);
-        ItemMeta paneMeta = pane.getItemMeta(); paneMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "woontime.su"); pane.setItemMeta(paneMeta);
+        ItemStack pane = new ItemStack(Material.BLUE_STAINED_GLASS_PANE);
+        ItemMeta paneMeta = pane.getItemMeta(); paneMeta.setDisplayName(ChatColor.AQUA + "✦ WOONTIME ✦"); pane.setItemMeta(paneMeta);
         for (int slot=0; slot<54; slot++) if (slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8) inv.setItem(slot, pane);
         int[] slots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34};
         for (int i=0;i<names.size() && i<slots.length;i++) {
             String name=names.get(i);
             ItemStack icon = new ItemStack(kitIcon(name));
             ItemMeta meta=icon.getItemMeta();
-            meta.setDisplayName(ChatColor.LIGHT_PURPLE + name);
+            meta.setDisplayName(ChatColor.AQUA + "⚔ " + name);
             int waiting=0; for(String queued:queueKits.values()) if(queued.equalsIgnoreCase(name)) waiting++;
-            meta.setLore(List.of(ChatColor.GRAY+"В очереди на кит: "+ChatColor.LIGHT_PURPLE+waiting,
-                ChatColor.WHITE+"ЛКМ — Выбрать кит",
-                ChatColor.WHITE+"ПКМ — Редактировать кит"));
+            meta.setLore(List.of(ChatColor.GRAY+"В очереди: "+ChatColor.AQUA+waiting,
+                ChatColor.AQUA+"ЛКМ » найти дуэль",
+                ChatColor.WHITE+"ПКМ » редактор кита"));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE);
             icon.setItemMeta(meta); inv.setItem(slots[i],icon);
         }
         ItemStack info=new ItemStack(Material.PAPER); ItemMeta im=info.getItemMeta();
-        im.setDisplayName(ChatColor.LIGHT_PURPLE+"WoonTime.su");
-        im.setLore(List.of(ChatColor.GRAY+"Выбери набор для поиска дуэли",ChatColor.GRAY+"Пока ждёшь, ПКМ по киту — выйти из очереди"));
+        im.setDisplayName(ChatColor.AQUA+"✦ WOONTIME DUELS ✦");
+        im.setLore(List.of(ChatColor.GRAY+"Выбери набор для поиска дуэли",ChatColor.AQUA+"ЛКМ » начать поиск",ChatColor.GRAY+"ПКМ » редактировать кит / выйти из очереди"));
         info.setItemMeta(im); inv.setItem(49,info);
         p.openInventory(inv);
     }
@@ -316,7 +316,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             return;
         }
         if(title.startsWith(PREVIEW_TITLE)){e.setCancelled(true);if(e.getRawSlot()==52){List<String> layout=pendingKitLayouts.remove(p.getUniqueId());String kit=editingKits.remove(p.getUniqueId());if(layout!=null&&kit!=null){personalKits.set(p.getUniqueId()+"."+kit+".layout",layout);try{personalKits.save(personalKitsFile);}catch(IOException ex){getLogger().warning("Could not save personal kit: "+ex.getMessage());}msg(p,"Изменения кита "+kit+" сохранены.");}boolean back=returnToKitSelection.remove(p.getUniqueId());p.closeInventory();if(back)Bukkit.getScheduler().runTask(this,()->openKits(p));return;}if(e.getRawSlot()==53){pendingKitLayouts.remove(p.getUniqueId());editingKits.remove(p.getUniqueId());msg(p,"Сохранение кита отменено.");boolean back=returnToKitSelection.remove(p.getUniqueId());p.closeInventory();if(back)Bukkit.getScheduler().runTask(this,()->openKits(p));return;}return;}
-        if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta()||it.getItemMeta().getDisplayName()==null)return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.equalsIgnoreCase("Найти дуэль"))openKits(p);else if(n.equalsIgnoreCase("Статистика"))openStats(p);else if(n.equalsIgnoreCase("Вызвать игрока"))openPlayerSelect(p);return;}
+        if(title.equals(MAIN_MENU_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta()||it.getItemMeta().getDisplayName()==null)return;String n=ChatColor.stripColor(it.getItemMeta().getDisplayName());if(n.contains("ПОИСК БОЯ"))openKits(p);else if(n.contains("СТАТИСТИКА"))openStats(p);else if(n.contains("ВЫЗВАТЬ ИГРОКА"))openPlayerSelect(p);return;}
         if(title.equals(PLAYER_SELECT_TITLE)){e.setCancelled(true);ItemStack it=e.getCurrentItem();if(it==null||!it.hasItemMeta()||it.getType()!=Material.PLAYER_HEAD)return;String targetName=ChatColor.stripColor(it.getItemMeta().getDisplayName());Player target=Bukkit.getPlayerExact(targetName);if(target==null||target.equals(p)){msg(p,"Игрок больше недоступен.");openPlayerSelect(p);return;}if(opponents.containsKey(target.getUniqueId())){msg(p,"Игрок уже в дуэли.");openPlayerSelect(p);return;}invitations.put(target.getUniqueId(),p.getUniqueId());p.closeInventory();msg(p,"Вызов отправлен игроку "+target.getName()+".");msg(target,p.getName()+" вызывает тебя на дуэль! Напиши /duel accept или /duel deny.");return;}
         if(title.equals(STATS_MENU_TITLE)){e.setCancelled(true);if(e.getRawSlot()==40)openMainMenu(p);return;}
         if(title.equals(EDITOR_TITLE)){int raw=e.getRawSlot();if(raw==51){e.setCancelled(true);returnToKitSelection.add(p.getUniqueId());p.closeInventory();return;}if(!isKitEditableSlot(raw)||e.getClickedInventory()!=e.getView().getTopInventory()||e.getClick().isShiftClick()||e.getClick().isKeyboardClick()||e.getClick()==ClickType.DOUBLE_CLICK||e.getClick()==ClickType.DROP||e.getClick()==ClickType.CONTROL_DROP){e.setCancelled(true);return;}if(raw>=45&&raw<=48){ItemStack cursor=e.getCursor();if(cursor!=null&&!cursor.getType().isAir()&&!isArmorForSlot(raw,cursor)){e.setCancelled(true);return;}}return;}
