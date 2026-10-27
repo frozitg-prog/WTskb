@@ -277,7 +277,7 @@ public final class WoonTimeDuels extends JavaPlugin implements Listener, Command
             String name=names.get(i);
             ItemStack icon = new ItemStack(kitIcon(name));
             ItemMeta meta=icon.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + "⚔ " + name);
+            meta.setDisplayName(ChatColor.AQUA + name);
             int waiting=0; for(String queued:queueKits.values()) if(queued.equalsIgnoreCase(name)) waiting++;
             meta.setLore(List.of(ChatColor.GRAY+"В очереди: "+ChatColor.AQUA+waiting,
                 ChatColor.AQUA+"ЛКМ » найти дуэль",
